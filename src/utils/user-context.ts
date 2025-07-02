@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
+import { connection } from "next/server";
 
 export async function getCurrentUserId(): Promise<string> {
+  await connection();
   const headersList = await headers();
   const userId = headersList.get("x-user-id");
 
@@ -12,6 +14,7 @@ export async function getCurrentUserId(): Promise<string> {
 }
 
 export async function getCurrentUserEmail(): Promise<string> {
+  await connection();
   const headersList = await headers();
   const email = headersList.get("x-user-email");
 
@@ -23,6 +26,7 @@ export async function getCurrentUserEmail(): Promise<string> {
 }
 
 export async function getCurrentUserName(): Promise<string | null> {
+  await connection();
   const headersList = await headers();
   const name = headersList.get("x-user-name");
   return name;
@@ -33,6 +37,7 @@ export async function getCurrentUser(): Promise<{
   email: string;
   name: string | null;
 }> {
+  await connection();
   const headersList = await headers();
   const id = headersList.get("x-user-id");
   const email = headersList.get("x-user-email");
@@ -51,6 +56,7 @@ export async function getCurrentUser(): Promise<{
 
 // Optional user functions that return null instead of throwing errors
 export async function getCurrentUserIdOptional(): Promise<string | null> {
+  await connection();
   const headersList = await headers();
   return headersList.get("x-user-id");
 }
@@ -60,6 +66,7 @@ export async function getCurrentUserOptional(): Promise<{
   email: string;
   name: string | null;
 } | null> {
+  await connection();
   const headersList = await headers();
   const id = headersList.get("x-user-id");
   const email = headersList.get("x-user-email");
@@ -77,6 +84,7 @@ export async function getCurrentUserOptional(): Promise<{
 }
 
 export async function isAuthenticated(): Promise<boolean> {
+  await connection();
   const headersList = await headers();
   const userId = headersList.get("x-user-id");
   const email = headersList.get("x-user-email");

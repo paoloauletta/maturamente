@@ -3,6 +3,7 @@ import { getSubjectNotes } from "@/utils/notes-data";
 import { NotesGridClient } from "./notes-grid";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import { connection } from "next/server";
 
 interface NotesDataServerProps {
   subjectSlug: string;
@@ -10,6 +11,7 @@ interface NotesDataServerProps {
 
 export async function NotesDataServer({ subjectSlug }: NotesDataServerProps) {
   try {
+    await connection();
     const session = await auth();
 
     if (!session?.user?.id) {

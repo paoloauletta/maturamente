@@ -3,6 +3,10 @@ import { Suspense } from "react";
 import { getExercisesData } from "@/utils/exercise-data";
 import { ExercisesSkeleton } from "@/app/components/shared/loading";
 import { auth } from "@/lib/auth";
+import { connection } from "next/server";
+
+// Force dynamic rendering for authentication
+export const dynamic = "force-dynamic";
 
 // Set revalidation period
 export const revalidate = 3600;
@@ -26,6 +30,7 @@ async function ExercisesContent({
 }: {
   params: Promise<{ "subject-slug": string }>;
 }) {
+  await connection();
   const session = await auth();
   const userId = session?.user?.id;
   const { "subject-slug": subjectSlug } = await params;

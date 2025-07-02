@@ -4,6 +4,10 @@ import { auth } from "@/lib/auth";
 import { getNoteBySlug } from "@/utils/notes-data";
 import { SingleNoteLayout } from "../../components/subject/notes/single-note/single-note-layout";
 import { LoadingSpinner } from "@/app/components/shared/loading/skeletons/loading-spinner";
+import { connection } from "next/server";
+
+// Force dynamic rendering for authentication
+export const dynamic = "force-dynamic";
 
 interface NotePageProps {
   params: Promise<{
@@ -19,6 +23,7 @@ async function NotePageServer({
   subjectSlug: string;
   noteSlug: string;
 }) {
+  await connection();
   const session = await auth();
 
   if (!session?.user?.id) {

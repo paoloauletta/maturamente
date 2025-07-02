@@ -5,6 +5,10 @@ import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
+import { connection } from "next/server";
+
+// Force dynamic rendering for authentication
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Impostazioni",
@@ -35,6 +39,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage() {
+  await connection();
   const session = await auth();
   const user = session?.user;
 

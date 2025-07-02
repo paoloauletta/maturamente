@@ -3,6 +3,7 @@ import { TopicExercisesPage } from "@/app/components/subject/esercizi/exercises-
 import { Suspense } from "react";
 import { ExercisesSkeleton } from "@/app/components/shared/loading";
 import { auth } from "@/lib/auth";
+import { connection } from "next/server";
 import {
   getAllTopics,
   getTopicsWithSubtopics,
@@ -24,6 +25,9 @@ interface ExercisesTopicPageProps {
     [key: string]: string | string[] | undefined;
   }>;
 }
+
+// Force dynamic rendering for authentication
+export const dynamic = "force-dynamic";
 
 // Generate static params for all topics - this enables static generation
 export async function generateStaticParams() {
@@ -59,6 +63,7 @@ async function ExercisesTopicContent({
   subtopicSlug?: string;
   subjectSlug: string;
 }) {
+  await connection();
   const session = await auth();
   const userId = session?.user?.id;
 

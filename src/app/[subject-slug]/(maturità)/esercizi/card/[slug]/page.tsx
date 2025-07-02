@@ -4,6 +4,10 @@ import { Suspense } from "react";
 import { ExercisesSkeleton } from "@/app/components/shared/loading";
 import { auth } from "@/lib/auth";
 import { getExerciseCardDataBySlug } from "@/utils/exercise-data";
+import { connection } from "next/server";
+
+// Force dynamic rendering for authentication
+export const dynamic = "force-dynamic";
 
 interface ExerciseCardPageProps {
   params: Promise<{
@@ -32,6 +36,7 @@ async function ExerciseCardContent({
   cardSlug: string;
   subjectSlug: string;
 }) {
+  await connection();
   const session = await auth();
   const userId = session?.user?.id;
 
