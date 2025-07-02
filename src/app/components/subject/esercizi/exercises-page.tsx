@@ -76,13 +76,13 @@ export function GeneralExercisesPage({
   const scrollToTopic = (topicId: string, skipUrlUpdate = false) => {
     const element = document.getElementById(`topic-${topicId}`);
     if (element) {
-      const headerOffset = 100;
+      const headerOffset = isMobile ? 80 : 120; // Responsive offset
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition =
         elementPosition + window.pageYOffset - headerOffset;
 
       window.scrollTo({
-        top: offsetPosition,
+        top: Math.max(0, offsetPosition), // Ensure we don't scroll to negative position
         behavior: "smooth",
       });
     }
@@ -485,9 +485,18 @@ function TopicExercisesContent({
         setTimeout(() => {
           const element = document.getElementById(subtopicId);
           if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "start" });
+            // Use consistent scroll calculation for better control
+            const headerOffset = isMobile ? 80 : 120;
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition =
+              elementPosition + window.pageYOffset - headerOffset;
+
+            window.scrollTo({
+              top: Math.max(0, offsetPosition),
+              behavior: "smooth",
+            });
           }
-        }, 100);
+        }, 150); // Slightly longer delay for navigation
       }
     }
   };

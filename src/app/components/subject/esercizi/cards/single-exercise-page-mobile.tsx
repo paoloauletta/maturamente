@@ -226,6 +226,7 @@ export default function MobileExerciseView({
     <>
       <div
         ref={exerciseRef}
+        data-exercise-id={id}
         className="border-b last:border-b-0 border-border overflow-hidden transition-colors"
       >
         {/* Exercise header - always visible */}

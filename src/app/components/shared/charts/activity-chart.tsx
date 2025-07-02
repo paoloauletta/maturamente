@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart3, TrendingUp } from "lucide-react";
@@ -33,6 +32,7 @@ type ChartType = "bar" | "line";
 // Consistent color definitions
 const SIMULATIONS_COLOR = "#3b82f6"; // blue-500
 const THEORY_COLOR = "#f59e0b"; // amber-500
+const EXERCISES_COLOR = "#10b981"; // emerald-500
 
 export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
   const [chartType, setChartType] = useState<ChartType>("bar");
@@ -57,20 +57,19 @@ export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
     ? monthlyActivity.slice(-3)
     : monthlyActivity;
 
-  const maxOverall = Math.max(
-    ...processedActivity.map((m) => m.simulations),
-    ...processedActivity.map((m) => m.topics + m.subtopics),
-    1 // Ensure at least 1 to prevent division by zero or empty chart issues
-  );
-
   const isEmpty = processedActivity.every(
-    (m) => m.simulations === 0 && m.topics === 0 && m.subtopics === 0
+    (m) =>
+      m.simulations === 0 &&
+      m.topics === 0 &&
+      m.subtopics === 0 &&
+      m.exercises === 0
   );
 
   const chartData = processedActivity.map((month) => ({
     month: month.month,
     simulazioni: month.simulations,
     teoria: month.topics + month.subtopics,
+    esercizi: month.exercises,
   }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -143,6 +142,13 @@ export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
           radius={[4, 4, 0, 0]}
           barSize={24}
         />
+        <Bar
+          dataKey="esercizi"
+          name="Esercizi"
+          fill={EXERCISES_COLOR}
+          radius={[4, 4, 0, 0]}
+          barSize={24}
+        />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -201,6 +207,25 @@ export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
             stroke: THEORY_COLOR,
             strokeWidth: 2,
             fill: THEORY_COLOR,
+          }}
+          connectNulls
+        />
+        <Line
+          type="monotone"
+          dataKey="esercizi"
+          name="Esercizi"
+          stroke={EXERCISES_COLOR}
+          strokeWidth={2.5}
+          dot={{
+            fill: EXERCISES_COLOR,
+            strokeWidth: 0,
+            r: 3,
+          }}
+          activeDot={{
+            r: 6,
+            stroke: EXERCISES_COLOR,
+            strokeWidth: 2,
+            fill: EXERCISES_COLOR,
           }}
           connectNulls
         />

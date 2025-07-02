@@ -196,6 +196,27 @@ export default function ExerciseCardDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile, sortedExercises.length, allCorrect]);
 
+  // Scroll to current exercise when it changes
+  useEffect(() => {
+    const currentRef = exerciseRefs.current[currentExerciseIndex];
+    if (currentRef) {
+      // Add a small delay to ensure DOM is ready
+      setTimeout(() => {
+        // Use scrollIntoView with better options for more reliable scrolling
+        const headerOffset = isMobile ? 80 : 120; // Responsive offset
+        const elementPosition = currentRef.getBoundingClientRect().top;
+        const offsetPosition =
+          elementPosition + window.pageYOffset - headerOffset;
+
+        // Use a more controlled scroll behavior
+        window.scrollTo({
+          top: Math.max(0, offsetPosition), // Ensure we don't scroll to negative position
+          behavior: "smooth",
+        });
+      }, 100); // Slightly longer delay for better reliability
+    }
+  }, [currentExerciseIndex, isMobile]);
+
   // Handle exercise completion and expand next incomplete exercise
   const handleExerciseComplete = (exerciseId: string, isCorrect: boolean) => {
     if (isCorrect && isMobile) {
@@ -215,7 +236,7 @@ export default function ExerciseCardDetail({
       if (allExercisesCorrect) {
         setTimeout(() => {
           setExpandedExerciseIds([]);
-        }, 400);
+        }, 500);
         return;
       }
 
@@ -237,21 +258,38 @@ export default function ExerciseCardDetail({
         }
       }
 
-      // Expand next incomplete exercise (with a delay) if found
+      // Expand next incomplete exercise and scroll to it (with a delay) if found
       if (nextIncompleteIndex !== -1) {
         setTimeout(() => {
           setExpandedExerciseIds([sortedExercises[nextIncompleteIndex].id]);
-        }, 400);
+
+          // Scroll to the next exercise on mobile
+          const nextExerciseId = sortedExercises[nextIncompleteIndex].id;
+          const nextElement = document.querySelector(
+            `[data-exercise-id="${nextExerciseId}"]`
+          );
+          if (nextElement) {
+            const headerOffset = 100; // Mobile header offset
+            const elementPosition = nextElement.getBoundingClientRect().top;
+            const offsetPosition =
+              elementPosition + window.pageYOffset - headerOffset;
+
+            window.scrollTo({
+              top: Math.max(0, offsetPosition),
+              behavior: "smooth",
+            });
+          }
+        }, 500); // Consistent timing with desktop
       } else if (currentIndex === sortedExercises.length - 1) {
         // This was the last exercise, keep it expanded for a moment then collapse
         setTimeout(() => {
           setExpandedExerciseIds([]);
-        }, 400);
+        }, 500);
       } else {
         // If no next incomplete exercise, collapse all after delay
         setTimeout(() => {
           setExpandedExerciseIds([]);
-        }, 400);
+        }, 500);
       }
     }
   };
@@ -339,11 +377,15 @@ export default function ExerciseCardDetail({
         }
       }
 
-      // If this was marked correct and not the last exercise, move to next
-      if (isCorrect && currentExerciseIndex < sortedExercises.length - 1) {
+      // Consolidated timing for next exercise navigation - only on desktop
+      if (
+        isCorrect &&
+        currentExerciseIndex < sortedExercises.length - 1 &&
+        !isMobile
+      ) {
         setTimeout(() => {
           setCurrentExerciseIndex((prev) => prev + 1);
-        }, 400);
+        }, 500); // Longer delay to ensure smooth transition
       }
 
       // Refresh the UI if all exercises are completed
@@ -357,28 +399,6 @@ export default function ExerciseCardDetail({
       return Promise.reject(error);
     }
   };
-
-  // Scroll to current exercise when it changes
-  useEffect(() => {
-    const currentRef = exerciseRefs.current[currentExerciseIndex];
-    if (currentRef) {
-      // Add a small delay to ensure DOM is ready
-      setTimeout(() => {
-        // Get the element's position relative to the viewport
-        const rect = currentRef.getBoundingClientRect();
-
-        // Calculate the position to scroll to (element's top position relative to the document)
-        // minus 150px to create margin at the top
-        const scrollToY = window.scrollY + rect.top - 150;
-
-        // Perform the scroll
-        window.scrollTo({
-          top: scrollToY,
-          behavior: "smooth",
-        });
-      }, 50);
-    }
-  }, [currentExerciseIndex]);
 
   // Toggle flag status for the entire card
   const handleToggleCardFlag = async () => {

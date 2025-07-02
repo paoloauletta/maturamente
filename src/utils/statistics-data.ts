@@ -7,6 +7,10 @@ import {
   completedSubtopicsTable,
   topicsTable,
   subtopicsTable,
+  completedExercisesCardsTable,
+  exercisesCardsTable,
+  exercisesTable,
+  completedExercisesTable,
 } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import {
@@ -19,11 +23,98 @@ import type {
   MonthlyActivity,
   RecentSimulation,
   RecentTheoryItem,
+  RecentExerciseCard,
   RawCompletedTopic,
   RawCompletedSubtopic,
   RawCompletedSimulation,
+  RawCompletedExerciseCard,
   MonthData,
+  SimulationTypeBreakdown,
+  RawCompletedExercise,
 } from "@/types/statisticsTypes";
+
+/**
+ * Calculate simulation type breakdown based on simulation card names
+ */
+async function calculateSimulationTypeBreakdown(
+  userCompletedSimulations: RawCompletedSimulation[],
+  allSimulationsData?: any[]
+): Promise<SimulationTypeBreakdown> {
+  // Get completed simulation IDs
+  const completedSimulationIds = userCompletedSimulations
+    .map((sim) => sim.simulation_id)
+    .filter((id): id is string => id !== null);
+
+  if (completedSimulationIds.length === 0) {
+    return { ordinarie: 0, suppletive: 0, straordinarie: 0 };
+  }
+
+  // Get simulation card titles for completed simulations
+  const completedSimulationsWithCards = await db
+    .select({
+      simulation_id: simulationsTable.id,
+      card_title: simulationsCardsTable.title,
+      card_id: simulationsTable.card_id,
+    })
+    .from(simulationsTable)
+    .innerJoin(
+      simulationsCardsTable,
+      eq(simulationsTable.card_id, simulationsCardsTable.id)
+    )
+    .where(eq(simulationsTable.id, completedSimulationIds[0]));
+
+  // For multiple IDs, we need to use a different approach
+  const allCompletedSimulationsWithCards = await db
+    .select({
+      simulation_id: simulationsTable.id,
+      card_title: simulationsCardsTable.title,
+      card_id: simulationsTable.card_id,
+    })
+    .from(simulationsTable)
+    .innerJoin(
+      simulationsCardsTable,
+      eq(simulationsTable.card_id, simulationsCardsTable.id)
+    );
+
+  // Filter to only completed simulations
+  const relevantSimulations = allCompletedSimulationsWithCards.filter((sim) =>
+    completedSimulationIds.includes(sim.simulation_id)
+  );
+
+  // Get unique card IDs from completed simulations
+  const completedCardIds = Array.from(
+    new Set(relevantSimulations.map((sim) => sim.card_id))
+  );
+
+  // Get unique card titles for the completed cards
+  const uniqueCompletedCards = await db
+    .select({
+      id: simulationsCardsTable.id,
+      title: simulationsCardsTable.title,
+    })
+    .from(simulationsCardsTable);
+
+  const completedCardTitles = uniqueCompletedCards
+    .filter((card) => completedCardIds.includes(card.id))
+    .map((card) => card.title);
+
+  // Count by type based on card titles
+  let ordinarie = 0;
+  let suppletive = 0;
+  let straordinarie = 0;
+
+  completedCardTitles.forEach((title) => {
+    if (title.toLowerCase().startsWith("ordinaria")) {
+      ordinarie++;
+    } else if (title.toLowerCase().startsWith("suppletiva")) {
+      suppletive++;
+    } else if (title.toLowerCase().startsWith("straordinaria")) {
+      straordinarie++;
+    }
+  });
+
+  return { ordinarie, suppletive, straordinarie };
+}
 
 /**
  * Get user's completed simulations data
@@ -91,12 +182,18 @@ export async function getSimulationStatistics(userId: string) {
     return total;
   }, 0);
 
+  // Calculate simulation type breakdown
+  const simulationTypeBreakdown = await calculateSimulationTypeBreakdown(
+    userCompletedSimulations
+  );
+
   return {
     userCompletedSimulations,
     totalSimulations,
     completedSimulations: uniqueCompletedSimulations,
     completionPercentage,
     totalTimeSpent,
+    simulationTypeBreakdown,
   };
 }
 
@@ -150,12 +247,18 @@ export async function getSimulationStatisticsBySubject(
     0
   );
 
+  // Calculate simulation type breakdown
+  const simulationTypeBreakdown = await calculateSimulationTypeBreakdown(
+    subjectUserCompletedSimulations
+  );
+
   return {
     userCompletedSimulations: subjectUserCompletedSimulations,
     totalSimulations,
     completedSimulations: uniqueCompletedSimulations,
     completionPercentage,
     totalTimeSpent,
+    simulationTypeBreakdown,
   };
 }
 
@@ -228,6 +331,186 @@ export async function getTheoryCompletionData(userId: string) {
     completedSubtopicsCount,
     topicsCompletionPercentage,
     subtopicsCompletionPercentage,
+  };
+}
+
+/**
+ * Get user's completed exercise cards data
+ */
+export async function getExerciseCompletionData(userId: string) {
+  // Get all exercise cards and exercises
+  const [allExerciseCards, allExercises] = await Promise.all([
+    db.query.exercisesCardsTable.findMany(),
+    db.query.exercisesTable.findMany(),
+  ]);
+
+  // Get user's completed exercise cards
+  const completedExerciseCards = (await db
+    .select({
+      exercise_card_id: completedExercisesCardsTable.exercise_card_id,
+      created_at: completedExercisesCardsTable.created_at,
+      description: exercisesCardsTable.description,
+      slug: exercisesCardsTable.slug,
+      difficulty: exercisesCardsTable.difficulty,
+      subtopic_name: subtopicsTable.name,
+      topic_name: topicsTable.name,
+    })
+    .from(completedExercisesCardsTable)
+    .innerJoin(
+      exercisesCardsTable,
+      eq(completedExercisesCardsTable.exercise_card_id, exercisesCardsTable.id)
+    )
+    .leftJoin(
+      subtopicsTable,
+      eq(exercisesCardsTable.subtopic_id, subtopicsTable.id)
+    )
+    .leftJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
+    .where(eq(completedExercisesCardsTable.user_id, userId))
+    .orderBy(
+      desc(completedExercisesCardsTable.created_at)
+    )) as RawCompletedExerciseCard[];
+
+  // Get user's completed exercises (individual exercises, not cards)
+  const completedExercises = await db.query.completedExercisesTable.findMany({
+    where: eq(completedExercisesTable.user_id, userId),
+  });
+
+  // Calculate exercise statistics
+  const totalExerciseCards = allExerciseCards.length;
+  const totalExercises = allExercises.length;
+  const completedExerciseCardsCount = completedExerciseCards.length;
+  const completedExercisesCount = new Set(
+    completedExercises.map((ex) => ex.exercise_id)
+  ).size;
+
+  const exerciseCardsCompletionPercentage =
+    totalExerciseCards > 0
+      ? Math.round((completedExerciseCardsCount / totalExerciseCards) * 100)
+      : 0;
+
+  const exercisesCompletionPercentage =
+    totalExercises > 0
+      ? Math.round((completedExercisesCount / totalExercises) * 100)
+      : 0;
+
+  return {
+    allExerciseCards,
+    allExercises,
+    completedExerciseCards,
+    completedExercises,
+    totalExerciseCards,
+    totalExercises,
+    completedExerciseCardsCount,
+    completedExercisesCount,
+    exerciseCardsCompletionPercentage,
+    exercisesCompletionPercentage,
+  };
+}
+
+/**
+ * Get user's completed exercise cards data filtered by subject
+ */
+export async function getExerciseCompletionDataBySubject(
+  userId: string,
+  subjectId: string
+) {
+  // Get topics for this subject
+  const subjectTopics = await getTopicsBySubjectId(subjectId);
+  const subjectTopicIds = subjectTopics.map((topic) => topic.id);
+
+  // Get all subtopics for this subject
+  const allSubtopics = await db.query.subtopicsTable.findMany();
+  const subjectSubtopics = allSubtopics.filter((subtopic) =>
+    subjectTopicIds.includes(subtopic.topic_id)
+  );
+  const subjectSubtopicIds = subjectSubtopics.map((subtopic) => subtopic.id);
+
+  // Get all exercise cards for this subject
+  const allExerciseCards = await db.query.exercisesCardsTable.findMany();
+  const subjectExerciseCards = allExerciseCards.filter(
+    (card) => card.subtopic_id && subjectSubtopicIds.includes(card.subtopic_id)
+  );
+  const subjectExerciseCardIds = subjectExerciseCards.map((card) => card.id);
+
+  // Get all exercises for this subject
+  const allExercises = await db.query.exercisesTable.findMany();
+  const subjectExercises = allExercises.filter((exercise) =>
+    subjectExerciseCardIds.includes(exercise.exercise_card_id)
+  );
+
+  // Get user's completed exercise cards for this subject
+  const completedExerciseCards = (await db
+    .select({
+      exercise_card_id: completedExercisesCardsTable.exercise_card_id,
+      created_at: completedExercisesCardsTable.created_at,
+      description: exercisesCardsTable.description,
+      slug: exercisesCardsTable.slug,
+      difficulty: exercisesCardsTable.difficulty,
+      subtopic_name: subtopicsTable.name,
+      topic_name: topicsTable.name,
+    })
+    .from(completedExercisesCardsTable)
+    .innerJoin(
+      exercisesCardsTable,
+      eq(completedExercisesCardsTable.exercise_card_id, exercisesCardsTable.id)
+    )
+    .leftJoin(
+      subtopicsTable,
+      eq(exercisesCardsTable.subtopic_id, subtopicsTable.id)
+    )
+    .leftJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
+    .where(
+      and(
+        eq(completedExercisesCardsTable.user_id, userId),
+        eq(topicsTable.subject_id, subjectId)
+      )
+    )
+    .orderBy(
+      desc(completedExercisesCardsTable.created_at)
+    )) as RawCompletedExerciseCard[];
+
+  // Get user's completed exercises for this subject
+  const completedExercises = await db.query.completedExercisesTable.findMany({
+    where: eq(completedExercisesTable.user_id, userId),
+  });
+
+  // Filter completed exercises to only those belonging to subject exercise cards
+  const subjectExerciseIds = subjectExercises.map((exercise) => exercise.id);
+  const subjectCompletedExercises = completedExercises.filter(
+    (completedEx) =>
+      completedEx.exercise_id &&
+      subjectExerciseIds.includes(completedEx.exercise_id)
+  );
+
+  // Calculate exercise statistics for this subject
+  const totalExerciseCards = subjectExerciseCards.length;
+  const totalExercises = subjectExercises.length;
+  const completedExerciseCardsCount = completedExerciseCards.length;
+  const completedExercisesCount = new Set(
+    subjectCompletedExercises.map((ex) => ex.exercise_id)
+  ).size;
+
+  const exerciseCardsCompletionPercentage =
+    totalExerciseCards > 0
+      ? Math.round((completedExerciseCardsCount / totalExerciseCards) * 100)
+      : 0;
+
+  const exercisesCompletionPercentage =
+    totalExercises > 0
+      ? Math.round((completedExercisesCount / totalExercises) * 100)
+      : 0;
+
+  return {
+    allExerciseCards: subjectExerciseCards,
+    allExercises: subjectExercises,
+    completedExerciseCards,
+    completedExercises: subjectCompletedExercises,
+    totalExerciseCards,
+    totalExercises,
+    completedExerciseCardsCount,
+    completedExercisesCount,
+    exerciseCardsCompletionPercentage,
+    exercisesCompletionPercentage,
   };
 }
 
@@ -330,7 +613,8 @@ export async function getTheoryCompletionDataBySubject(
 export function generateMonthlyActivity(
   userCompletedSimulations: RawCompletedSimulation[],
   completedTopics: RawCompletedTopic[],
-  completedSubtopics: RawCompletedSubtopic[]
+  completedSubtopics: RawCompletedSubtopic[],
+  completedExercises: RawCompletedExercise[]
 ): MonthlyActivity[] {
   // Get the monthly activity data (last 6 months)
   const last6Months: MonthData[] = Array.from({ length: 6 }, (_, i) => {
@@ -375,12 +659,23 @@ export function generateMonthlyActivity(
       );
     });
 
+    // Count completed exercises (individual exercises, not cards) in this month
+    const exercisesInMonth = completedExercises.filter((exercise) => {
+      if (!exercise.exercise_id) return false; // Skip exercises without valid exercise_id
+      const exerciseDate = new Date(exercise.created_at);
+      return (
+        exerciseDate.getMonth() === monthData.monthIndex &&
+        exerciseDate.getFullYear() === monthData.year
+      );
+    });
+
     return {
       month: monthData.month,
       year: monthData.year,
       simulations: simulationsInMonth.length,
       topics: topicsInMonth.length,
       subtopics: subtopicsInMonth.length,
+      exercises: exercisesInMonth.length,
       yearMonth: monthData.yearMonth,
     };
   });
@@ -392,10 +687,12 @@ export function generateMonthlyActivity(
 export async function getRecentActivity(
   userCompletedSimulations: RawCompletedSimulation[],
   completedTopics: RawCompletedTopic[],
-  completedSubtopics: RawCompletedSubtopic[]
+  completedSubtopics: RawCompletedSubtopic[],
+  completedExerciseCards: RawCompletedExerciseCard[]
 ): Promise<{
   recentSimulations: RecentSimulation[];
   recentTheory: RecentTheoryItem[];
+  recentExerciseCards: RecentExerciseCard[];
 }> {
   // Get recent activities (combine simulations and theory before limiting)
   const recentSimulations = await Promise.all(
@@ -442,8 +739,27 @@ export async function getRecentActivity(
       })),
   ];
 
+  // Prepare exercise card completions
+  const recentExerciseCards = completedExerciseCards
+    .filter((exerciseCard) => exerciseCard.exercise_card_id)
+    .map((exerciseCard) => ({
+      id: exerciseCard.exercise_card_id!,
+      title: exerciseCard.description,
+      date: exerciseCard.created_at,
+      type: "exercise_card" as const,
+      exerciseCardId: exerciseCard.exercise_card_id!,
+      slug: exerciseCard.slug,
+      difficulty: exerciseCard.difficulty,
+      subtopicName: exerciseCard.subtopic_name,
+      topicName: exerciseCard.topic_name,
+    }));
+
   // Combine all activities, sort globally, then take top 5
-  const allActivities = [...recentSimulations, ...recentTheory]
+  const allActivities = [
+    ...recentSimulations,
+    ...recentTheory,
+    ...recentExerciseCards,
+  ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
     .map((activity) => ({
@@ -460,9 +776,14 @@ export async function getRecentActivity(
     (activity) => activity.type === "topic" || activity.type === "subtopic"
   ) as RecentTheoryItem[];
 
+  const finalRecentExerciseCards = allActivities.filter(
+    (activity) => activity.type === "exercise_card"
+  ) as RecentExerciseCard[];
+
   return {
     recentSimulations: finalRecentSimulations,
     recentTheory: finalRecentTheory,
+    recentExerciseCards: finalRecentExerciseCards,
   };
 }
 
@@ -478,19 +799,25 @@ export async function getAllStatisticsData(
   // Get theory completion data
   const theoryData = await getTheoryCompletionData(userId);
 
+  // Get exercise completion data
+  const exerciseData = await getExerciseCompletionData(userId);
+
   // Generate monthly activity
   const monthlyActivity = generateMonthlyActivity(
     simulationStats.userCompletedSimulations,
     theoryData.completedTopics,
-    theoryData.completedSubtopics
+    theoryData.completedSubtopics,
+    exerciseData.completedExercises
   );
 
   // Get recent activity
-  const { recentSimulations, recentTheory } = await getRecentActivity(
-    simulationStats.userCompletedSimulations,
-    theoryData.completedTopics,
-    theoryData.completedSubtopics
-  );
+  const { recentSimulations, recentTheory, recentExerciseCards } =
+    await getRecentActivity(
+      simulationStats.userCompletedSimulations,
+      theoryData.completedTopics,
+      theoryData.completedSubtopics,
+      exerciseData.completedExerciseCards
+    );
 
   return {
     // Simulation stats
@@ -498,6 +825,7 @@ export async function getAllStatisticsData(
     completedSimulations: simulationStats.completedSimulations,
     completionPercentage: simulationStats.completionPercentage,
     totalTimeSpent: simulationStats.totalTimeSpent,
+    simulationTypeBreakdown: simulationStats.simulationTypeBreakdown,
     // Theory stats
     totalTopics: theoryData.totalTopics,
     completedTopicsCount: theoryData.completedTopicsCount,
@@ -505,11 +833,20 @@ export async function getAllStatisticsData(
     totalSubtopics: theoryData.totalSubtopics,
     completedSubtopicsCount: theoryData.completedSubtopicsCount,
     subtopicsCompletionPercentage: theoryData.subtopicsCompletionPercentage,
+    // Exercise stats
+    totalExerciseCards: exerciseData.totalExerciseCards,
+    completedExerciseCards: exerciseData.completedExerciseCardsCount,
+    exerciseCardsCompletionPercentage:
+      exerciseData.exerciseCardsCompletionPercentage,
+    totalExercises: exerciseData.totalExercises,
+    completedExercises: exerciseData.completedExercisesCount,
+    exercisesCompletionPercentage: exerciseData.exercisesCompletionPercentage,
     // Activity data
     monthlyActivity,
     // Recent activity
     recentSimulations,
     recentTheory,
+    recentExerciseCards,
   };
 }
 
@@ -529,19 +866,28 @@ export async function getAllStatisticsDataBySubject(
   // Get theory completion data for this subject
   const theoryData = await getTheoryCompletionDataBySubject(userId, subjectId);
 
+  // Get exercise completion data for this subject
+  const exerciseData = await getExerciseCompletionDataBySubject(
+    userId,
+    subjectId
+  );
+
   // Generate monthly activity
   const monthlyActivity = generateMonthlyActivity(
     simulationStats.userCompletedSimulations,
     theoryData.completedTopics,
-    theoryData.completedSubtopics
+    theoryData.completedSubtopics,
+    exerciseData.completedExercises
   );
 
   // Get recent activity
-  const { recentSimulations, recentTheory } = await getRecentActivity(
-    simulationStats.userCompletedSimulations,
-    theoryData.completedTopics,
-    theoryData.completedSubtopics
-  );
+  const { recentSimulations, recentTheory, recentExerciseCards } =
+    await getRecentActivity(
+      simulationStats.userCompletedSimulations,
+      theoryData.completedTopics,
+      theoryData.completedSubtopics,
+      exerciseData.completedExerciseCards
+    );
 
   return {
     // Simulation stats
@@ -549,6 +895,7 @@ export async function getAllStatisticsDataBySubject(
     completedSimulations: simulationStats.completedSimulations,
     completionPercentage: simulationStats.completionPercentage,
     totalTimeSpent: simulationStats.totalTimeSpent,
+    simulationTypeBreakdown: simulationStats.simulationTypeBreakdown,
     // Theory stats
     totalTopics: theoryData.totalTopics,
     completedTopicsCount: theoryData.completedTopicsCount,
@@ -556,10 +903,19 @@ export async function getAllStatisticsDataBySubject(
     totalSubtopics: theoryData.totalSubtopics,
     completedSubtopicsCount: theoryData.completedSubtopicsCount,
     subtopicsCompletionPercentage: theoryData.subtopicsCompletionPercentage,
+    // Exercise stats
+    totalExerciseCards: exerciseData.totalExerciseCards,
+    completedExerciseCards: exerciseData.completedExerciseCardsCount,
+    exerciseCardsCompletionPercentage:
+      exerciseData.exerciseCardsCompletionPercentage,
+    totalExercises: exerciseData.totalExercises,
+    completedExercises: exerciseData.completedExercisesCount,
+    exercisesCompletionPercentage: exerciseData.exercisesCompletionPercentage,
     // Activity data
     monthlyActivity,
     // Recent activity
     recentSimulations,
     recentTheory,
+    recentExerciseCards,
   };
 }

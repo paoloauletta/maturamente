@@ -53,15 +53,23 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
     completedSimulations,
     completionPercentage,
     totalTimeSpent,
+    simulationTypeBreakdown,
     totalTopics,
     completedTopicsCount,
     topicsCompletionPercentage,
     totalSubtopics,
     completedSubtopicsCount,
     subtopicsCompletionPercentage,
+    totalExerciseCards,
+    completedExerciseCards,
+    exerciseCardsCompletionPercentage,
+    totalExercises,
+    completedExercises,
+    exercisesCompletionPercentage,
     monthlyActivity,
     recentSimulations,
     recentTheory,
+    recentExerciseCards,
   } = data;
 
   // Format time from minutes to hours and minutes
@@ -72,7 +80,11 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
   };
 
   // Combine and sort recent activity
-  const recentActivity = [...recentSimulations, ...recentTheory]
+  const recentActivity = [
+    ...recentSimulations,
+    ...recentTheory,
+    ...recentExerciseCards,
+  ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
@@ -100,42 +112,8 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
         </div>
       </div>
 
-      {/* Main Stats Cards */}
+      {/* Learning Activities - Top Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Simulation Progress Card */}
-        <Card className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-primary/5 to-background border-primary/20">
-          <CardHeader className="pb-3 md:pb-6">
-            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-              <SquareLibrary className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
-              <span className="truncate">Simulazioni</span>
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm">
-              Il tuo progresso nelle simulazioni d'esame
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 md:space-y-4">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="text-2xl md:text-3xl font-bold">
-                  {completedSimulations}
-                </div>
-                <div className="text-xs md:text-sm text-muted-foreground">
-                  su {totalSimulations} simulazioni
-                </div>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <div className="text-xl md:text-2xl font-bold text-primary">
-                  {completionPercentage}%
-                </div>
-                <div className="text-xs md:text-sm text-muted-foreground">
-                  completato
-                </div>
-              </div>
-            </div>
-            <Progress value={completionPercentage} className="h-2" />
-          </CardContent>
-        </Card>
-
         {/* Theory Progress Card */}
         <Card className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-amber-500/5 to-background border-amber-500/20">
           <CardHeader className="pb-3 md:pb-6">
@@ -199,7 +177,143 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Exercises Progress Card */}
+        <Card className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-green-500/5 to-background border-green-500/20">
+          <CardHeader className="pb-3 md:pb-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <GraduationCap className="h-4 w-4 md:h-5 md:w-5 text-green-500 flex-shrink-0" />
+              <span className="truncate">Esercizi</span>
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm">
+              Il tuo progresso negli esercizi pratici
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 md:space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xl md:text-2xl font-bold">
+                    {completedExerciseCards}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    su {totalExerciseCards} schede esercizi
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-lg md:text-xl font-bold text-green-500">
+                    {exerciseCardsCompletionPercentage}%
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    completato
+                  </div>
+                </div>
+              </div>
+              <Progress
+                value={exerciseCardsCompletionPercentage}
+                className="h-1.5 [&>div]:bg-green-500 bg-green-100 dark:bg-green-900"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xl md:text-2xl font-bold">
+                    {completedExercises}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    su {totalExercises} esercizi individuali
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-lg md:text-xl font-bold text-green-500">
+                    {exercisesCompletionPercentage}%
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    completato
+                  </div>
+                </div>
+              </div>
+              <Progress
+                value={exercisesCompletionPercentage}
+                className="h-1.5 [&>div]:bg-green-500 bg-green-100 dark:bg-green-900"
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Assessment Card - Full Width */}
+      <Card className="w-full relative overflow-hidden bg-gradient-to-br from-primary/5 to-background border-primary/20">
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <SquareLibrary className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
+            <span className="truncate">Simulazioni</span>
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm">
+            Il tuo progresso nelle simulazioni d'esame
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            {/* Main Progress - Left Column */}
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="text-2xl md:text-3xl font-bold">
+                    {completedSimulations}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    su {totalSimulations} simulazioni
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-xl md:text-2xl font-bold text-primary">
+                    {completionPercentage}%
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    completato
+                  </div>
+                </div>
+              </div>
+              <Progress value={completionPercentage} className="h-2" />
+            </div>
+
+            {/* Simulation Type Breakdown - Right Column */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm md:text-base text-muted-foreground">
+                Completate per tipologia
+              </h4>
+              <div className="grid grid-cols-3 gap-2 md:gap-3">
+                <div className="text-center p-2 md:p-3 bg-primary/5 rounded-lg border border-primary/10">
+                  <div className="text-lg md:text-xl font-bold text-primary">
+                    {simulationTypeBreakdown.ordinarie}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    Ordinarie
+                  </div>
+                </div>
+                <div className="text-center p-2 md:p-3 bg-primary/5 rounded-lg border border-primary/10">
+                  <div className="text-lg md:text-xl font-bold text-primary">
+                    {simulationTypeBreakdown.suppletive}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    Suppletive
+                  </div>
+                </div>
+                <div className="text-center p-2 md:p-3 bg-primary/5 rounded-lg border border-primary/10">
+                  <div className="text-lg md:text-xl font-bold text-primary">
+                    {simulationTypeBreakdown.straordinarie}
+                  </div>
+                  <div className="text-xs md:text-sm text-muted-foreground">
+                    Straordinarie
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs for detailed stats */}
       <Tabs defaultValue="activity" className="w-full">
@@ -247,7 +361,9 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                           className={`rounded-full p-1.5 md:p-2 flex-shrink-0 ${
                             activity.type === "simulation"
                               ? "bg-primary/10"
-                              : "bg-amber-500/10"
+                              : activity.type === "topic"
+                              ? "bg-amber-500/10"
+                              : "bg-green-500/10"
                           }`}
                         >
                           {activity.type === "simulation" ? (
@@ -255,7 +371,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                           ) : activity.type === "topic" ? (
                             <BookMinus className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
                           ) : (
-                            <BookMinus className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
+                            <GraduationCap className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -269,7 +385,9 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                                 }`
                               : activity.type === "topic"
                               ? "Argomento"
-                              : "Sotto-argomento"}{" "}
+                              : activity.type === "subtopic"
+                              ? "Sotto-argomento"
+                              : "Esercizio"}{" "}
                             • {activity.date}
                           </p>
                         </div>
@@ -291,7 +409,8 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                               Dettagli
                             </Link>
                           </Button>
-                        ) : (
+                        ) : activity.type === "topic" ||
+                          activity.type === "subtopic" ? (
                           <Button
                             variant="outline"
                             size="sm"
@@ -312,6 +431,21 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                               }`}
                             >
                               Vai alla teoria
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-green-500/20 text-green-700 hover:bg-green-500/10 hover:text-green-800 text-xs md:text-sm px-2 md:px-3"
+                            asChild
+                          >
+                            <Link
+                              href={`/${subjectSlug}/esercizi/${
+                                (activity as RecentTheoryItem).slug
+                              }?referrer=statistiche`}
+                            >
+                              Vai all'esercizio
                             </Link>
                           </Button>
                         )}
@@ -402,6 +536,16 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
               <Link href={`/${subjectSlug}/teoria?referrer=statistiche`}>
                 <BookMinus className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                 Studia teoria
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="w-full border-green-500/20 text-green-700 hover:bg-green-500/10 hover:text-green-800 text-sm"
+            >
+              <Link href={`/${subjectSlug}/esercizi?referrer=statistiche`}>
+                <GraduationCap className="h-3 w-3 md:h-4 md:w-4 mr-2" />
+                Pratica esercizi
               </Link>
             </Button>
           </div>
