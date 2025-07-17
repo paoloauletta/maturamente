@@ -9,7 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, TrendingUp } from "lucide-react";
+import { BarChart3, Clock, TrendingUp } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -23,8 +23,9 @@ import {
 } from "recharts";
 import type { MonthlyActivity } from "@/types/statisticsTypes";
 
-interface ActivityChartProps {
+interface MaturitàChartProps {
   monthlyActivity: MonthlyActivity[];
+  subjectColor: string;
 }
 
 type ChartType = "bar" | "line";
@@ -34,7 +35,10 @@ const SIMULATIONS_COLOR = "#3b82f6"; // blue-500
 const THEORY_COLOR = "#f59e0b"; // amber-500
 const EXERCISES_COLOR = "#10b981"; // emerald-500
 
-export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
+export function MaturitàChart({
+  monthlyActivity,
+  subjectColor = "#3b82f6",
+}: MaturitàChartProps) {
   const [chartType, setChartType] = useState<ChartType>("bar");
   const [isMobile, setIsMobile] = useState(false);
 
@@ -237,12 +241,15 @@ export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
     <Card>
       <CardHeader>
         <div className="flex md:flex-row flex-col items-center justify-between gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              Attività mensile
+          <div className="min-w-0 flex-1">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Clock
+                className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0"
+                style={{ color: subjectColor }}
+              />
+              <span className="truncate">Statistiche mensili</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs md:text-sm">
               Riepilogo delle attività negli ultimi {isMobile ? "3" : "6"} mesi
             </CardDescription>
           </div>
@@ -251,7 +258,12 @@ export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
               variant={chartType === "bar" ? "default" : "outline"}
               size="sm"
               onClick={() => setChartType("bar")}
-              className="text-xs w-full md:w-auto dark:text-white"
+              className={`text-xs w-full md:w-auto ${
+                chartType === "bar" ? "text-white" : "text-black"
+              }`}
+              style={
+                chartType === "bar" ? { backgroundColor: subjectColor } : {}
+              }
             >
               <BarChart3 className="h-3 w-3 mr-1" />
               Barre
@@ -260,7 +272,12 @@ export function ActivityChart({ monthlyActivity }: ActivityChartProps) {
               variant={chartType === "line" ? "default" : "outline"}
               size="sm"
               onClick={() => setChartType("line")}
-              className="text-xs w-full md:w-auto dark:text-white"
+              className={`text-xs w-full md:w-auto ${
+                chartType === "line" ? "text-white" : "text-black"
+              }`}
+              style={
+                chartType === "line" ? { backgroundColor: subjectColor } : {}
+              }
             >
               <TrendingUp className="h-3 w-3 mr-1" />
               Linea

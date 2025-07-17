@@ -160,7 +160,7 @@ export function NotesGridClient({
                 className="md:text-3xl text-2xl font-semibold pb-2"
                 style={{ color: subject.color }}
               >
-                Esercizi Preferiti{" "}
+                Appunti Preferiti{" "}
                 <span className="text-xl text-muted-foreground">
                   ({filteredFavoriteNotes.length})
                 </span>
@@ -184,9 +184,9 @@ export function NotesGridClient({
       <section className="space-y-4 w-full">
         <div className="flex items-center gap-2 w-full border-b border-muted">
           <h2 className="md:text-3xl text-2xl font-semibold pb-2 text-foreground">
-            Esercizi Preferiti{" "}
+            Tutti gli appunti{" "}
             <span className="text-xl text-muted-foreground">
-              ({filteredFavoriteNotes.length})
+              ({filteredAllNotes.length})
             </span>
           </h2>
         </div>

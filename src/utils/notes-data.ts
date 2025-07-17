@@ -9,6 +9,10 @@ import {
 import { eq, and, desc, count } from "drizzle-orm";
 import type { Note, FavoriteNote, SubjectNotesData } from "@/types/notesTypes";
 import type { NotesStatisticsData, RecentNote } from "@/types/statisticsTypes";
+import {
+  getSubjectStudyStats,
+  getMonthlyStudyActivityBySubject,
+} from "./study-sessions";
 
 /**
  * Get all notes for a specific subject with favorite status
@@ -318,6 +322,15 @@ export const getNotesStatistics = cache(
           type: "note" as const,
         }));
 
+      // Get study session statistics for this subject
+      const subjectSlug = allUserNotesQuery[0]?.subject_slug || "";
+      const studyStats = await getSubjectStudyStats(userId, subjectSlug);
+      const monthlyStudyActivity = await getMonthlyStudyActivityBySubject(
+        userId,
+        subjectSlug,
+        6
+      );
+
       return {
         totalNotes,
         favoriteNotes,
@@ -325,6 +338,11 @@ export const getNotesStatistics = cache(
         notesWithFavorites,
         favoritePercentage,
         recentNotes,
+        // Study session data
+        totalStudyTimeMinutes: studyStats.totalTimeMinutes,
+        totalStudySessions: studyStats.totalSessions,
+        averageSessionTimeMinutes: studyStats.averageTimeMinutes,
+        monthlyStudyActivity,
       };
     } catch (error) {
       console.error("Error fetching notes statistics:", error);

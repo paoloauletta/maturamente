@@ -303,3 +303,15 @@ export const flaggedNotesTable = pgTable("flagged_notes", {
   note_id: uuid("note_id").references(() => notesTable.id),
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const noteStudySessionsTable = pgTable("note_study_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  note_id: uuid("note_id")
+    .notNull()
+    .references(() => notesTable.id),
+  started_at: timestamp("started_at").notNull().defaultNow(),
+  last_active_at: timestamp("last_active_at").notNull().defaultNow(),
+});

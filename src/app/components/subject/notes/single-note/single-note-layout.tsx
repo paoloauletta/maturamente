@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Star, FileText, Bot } from "lucide-react";
+import { Star, FileText, Bot, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Note } from "@/types/notesTypes";
 import { ChatComponent, PDFComponent } from "./single-note-components";
+import { useStudySession } from "./use-study-session";
 
 interface SingleNoteLayoutProps {
   note: Note;
@@ -14,6 +15,12 @@ interface SingleNoteLayoutProps {
 export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+
+  // Initialize study session tracking
+  const { session, isTracking } = useStudySession({
+    noteId: note.id,
+    enabled: true,
+  });
 
   const handleToggleFavorite = async () => {
     setIsTogglingFavorite(true);
@@ -51,6 +58,16 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
             {note.title}
           </h1>
           <div className="flex items-center gap-2">
+            {/* Study session indicator */}
+            {isTracking && (
+              <div className="flex items-center gap-1 text-green-600 text-sm">
+                <Clock className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  Sessione di studio attiva
+                </span>
+              </div>
+            )}
+
             <Star
               className={cn(
                 "md:h-5 h-4 md:w-5 w-4 transition-colors hover:text-yellow-400 hover:scale-110 transition-all cursor-pointer",

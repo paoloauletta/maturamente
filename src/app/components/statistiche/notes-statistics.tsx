@@ -9,11 +9,21 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { FileText, BookOpen, History, Star, FolderOpen } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  FileText,
+  BookOpen,
+  History,
+  Star,
+  FolderOpen,
+  Clock,
+  Timer,
+} from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import type { NotesStatisticsClientProps } from "@/types/statisticsTypes";
+import { NotesChart } from "@/app/components/shared/charts/notes-chart";
 
 export function NotesStatistics({
   data,
@@ -40,7 +50,21 @@ export function NotesStatistics({
     totalSubjects,
     favoritePercentage,
     recentNotes,
+    totalStudyTimeMinutes,
+    totalStudySessions,
+    averageSessionTimeMinutes,
+    monthlyStudyActivity,
   } = data;
+
+  // Format time for display
+  const formatStudyTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    if (hours > 0) {
+      return `${hours}h ${mins}m`;
+    }
+    return `${mins}m`;
+  };
 
   return (
     <div
@@ -130,60 +154,91 @@ export function NotesStatistics({
         </Card>
       </div>
 
-      {/* Recent Notes */}
-      <Card className="container mx-auto">
-        <CardHeader className="mb-4">
-          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-            <History className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground flex-shrink-0" />
-            <span className="truncate">Appunti recenti</span>
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            Gli ultimi appunti aggiunti
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recentNotes.length > 0 ? (
-            <div className="space-y-3 md:space-y-4">
-              {recentNotes.map((note) => (
-                <div
-                  key={note.id}
-                  className="flex items-start justify-between gap-3 border-b pb-3 md:pb-4 last:border-0 last:pb-0"
-                >
-                  <div className="flex items-start gap-2 md:gap-3 min-w-0 flex-1">
-                    <div className="rounded-full p-1.5 md:p-2 flex-shrink-0 bg-[color:var(--subject-color)]/10">
-                      <FileText className="h-4 w-4 md:h-5 md:w-5 text-[color:var(--subject-color)]" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-medium text-sm md:text-base truncate">
-                        {note.title}
-                      </h4>
-                      <p className="text-xs md:text-sm text-muted-foreground">
-                        {note.subjectName} • {note.date}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-[color:var(--subject-color)]/20 text-[color:var(--subject-color)] hover:bg-[color:var(--subject-color)]/10 hover:text-[color:var(--subject-color)] text-xs md:text-sm px-2 md:px-3"
-                      asChild
+      {/* Study Analysis and Recent Activity */}
+      <Tabs defaultValue="activity" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full max-w-sm md:max-w-md">
+          <TabsTrigger
+            value="activity"
+            className="text-xs md:text-sm px-2 md:px-4"
+          >
+            Statistiche mensili
+          </TabsTrigger>
+          <TabsTrigger
+            value="recent"
+            className="text-xs md:text-sm px-2 md:px-4"
+          >
+            Attività recente
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="activity">
+          <NotesChart
+            monthlyActivity={monthlyStudyActivity}
+            subjectColor={subjectColor}
+          />
+        </TabsContent>
+
+        <TabsContent value="recent">
+          <Card className="container mx-auto">
+            <CardHeader className="mb-4">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <History
+                    className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0"
+                    style={{ color: subjectColor }}
+                  />
+                  <span className="truncate">Appunti recenti</span>
+                </CardTitle>
+                <CardDescription className="text-xs md:text-sm">
+                  Gli ultimi appunti che hai studiato
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {recentNotes.length > 0 ? (
+                <div className="space-y-3 md:space-y-4">
+                  {recentNotes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="flex items-start justify-between gap-3 border-b pb-3 md:pb-4 last:border-0 last:pb-0"
                     >
-                      <Link href={`/${subjectSlug}/${note.slug}`}>
-                        Visualizza
-                      </Link>
-                    </Button>
-                  </div>
+                      <div className="flex items-start gap-2 md:gap-3 min-w-0 flex-1">
+                        <div className="rounded-full p-1.5 md:p-2 flex-shrink-0 bg-[color:var(--subject-color)]/10">
+                          <FileText className="h-4 w-4 md:h-5 md:w-5 text-[color:var(--subject-color)]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-sm md:text-base truncate">
+                            {note.title}
+                          </h4>
+                          <p className="text-xs md:text-sm text-muted-foreground">
+                            {note.subjectName} • {note.date}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-[color:var(--subject-color)]/20 text-[color:var(--subject-color)] hover:bg-[color:var(--subject-color)]/10 hover:text-[color:var(--subject-color)] text-xs md:text-sm px-2 md:px-3"
+                          asChild
+                        >
+                          <Link href={`/${subjectSlug}/${note.slug}`}>
+                            Visualizza
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground py-8 md:py-12 text-sm md:text-base">
-              Non hai ancora nessun appunto
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="text-center text-muted-foreground py-8 md:py-12 text-sm md:text-base">
+                  Non hai ancora nessun appunto
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Call to action */}
       <Card className="bg-gradient-to-br from-[color:var(--subject-color)]/5 to-background border-[color:var(--subject-color)]/20">

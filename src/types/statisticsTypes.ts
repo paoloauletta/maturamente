@@ -69,6 +69,17 @@ export interface NotesStatisticsData {
   notesWithFavorites: number;
   favoritePercentage: number;
   recentNotes: RecentNote[];
+  // Study session data
+  totalStudyTimeMinutes: number;
+  totalStudySessions: number;
+  averageSessionTimeMinutes: number;
+  monthlyStudyActivity: MonthlyStudyActivity[];
+}
+
+export interface MonthlyStudyActivity {
+  month: string;
+  studyTimeMinutes: number;
+  sessionCount: number;
 }
 
 export interface RecentNote {

@@ -30,11 +30,12 @@ import type {
 } from "@/types/statisticsTypes";
 
 // Import the new chart component
-import { ActivityChart } from "@/app/components/shared/charts/activity-chart";
+import { MaturitàChart } from "@/app/components/shared/charts/maturità-chart";
 
 export function StatisticsMaturità({ data }: StatisticsClientProps) {
   const [mounted, setMounted] = useState(false);
   const params = useParams();
+  const subjectColor = "#3b82f6";
 
   // Get the current subject slug from params
   const subjectSlug = (params?.["subject-slug"] as string) || "";
@@ -89,7 +90,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
     .slice(0, 5);
 
   return (
-    <div className="flex flex-col gap-4 container mx-auto max-w-5xl">
+    <div className="flex flex-col gap-4 md:gap-6">
       {/* Header */}
       <div className="w-full overflow-hidden">
         <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:space-y-0 md:gap-4">
@@ -119,7 +120,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
           <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <BookMinus className="h-4 w-4 md:h-5 md:w-5 text-amber-500 flex-shrink-0" />
-              <span className="truncate">Teoria</span>
+              <span className="truncate min-w-0">Teoria</span>
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
               Il tuo progresso nello studio della teoria
@@ -183,7 +184,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
           <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <GraduationCap className="h-4 w-4 md:h-5 md:w-5 text-green-500 flex-shrink-0" />
-              <span className="truncate">Esercizi</span>
+              <span className="truncate min-w-0">Esercizi</span>
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
               Il tuo progresso negli esercizi pratici
@@ -248,7 +249,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
         <CardHeader className="pb-3 md:pb-6">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <SquareLibrary className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
-            <span className="truncate">Simulazioni</span>
+            <span className="truncate min-w-0">Simulazioni</span>
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
             Il tuo progresso nelle simulazioni d'esame
@@ -322,7 +323,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
             value="activity"
             className="text-xs md:text-sm px-2 md:px-4"
           >
-            Attività mensile
+            Statistiche mensili
           </TabsTrigger>
           <TabsTrigger
             value="recent"
@@ -333,20 +334,28 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
         </TabsList>
 
         <TabsContent value="activity">
-          {/* Use the new ActivityChart component */}
-          <ActivityChart monthlyActivity={monthlyActivity} />
+          {/* Use the new MaturitàChart component */}
+          <MaturitàChart
+            monthlyActivity={monthlyActivity}
+            subjectColor={subjectColor}
+          />
         </TabsContent>
 
         <TabsContent value="recent">
           <Card className="container mx-auto">
             <CardHeader className="mb-4">
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <History className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
-                <span className="truncate">Attività recente</span>
-              </CardTitle>
-              <CardDescription className="text-xs md:text-sm">
-                Le tue ultime attività completate
-              </CardDescription>
+              <div className="min-w-0 flex-1">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <History
+                    className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0"
+                    style={{ color: subjectColor }}
+                  />
+                  <span className="truncate min-w-0">Attività recente</span>
+                </CardTitle>
+                <CardDescription className="text-xs md:text-sm">
+                  Le tue ultime attività completate
+                </CardDescription>
+              </div>
             </CardHeader>
             <CardContent>
               {recentActivity.length > 0 ? (
@@ -356,7 +365,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                       key={activity.id}
                       className="flex items-start justify-between gap-3 border-b pb-3 md:pb-4 last:border-0 last:pb-0"
                     >
-                      <div className="flex items-start gap-2 md:gap-3 min-w-0 flex-1">
+                      <div className="flex items-start gap-2 md:gap-3 flex-1 w-full overflow-hidden">
                         <div
                           className={`rounded-full p-1.5 md:p-2 flex-shrink-0 ${
                             activity.type === "simulation"
@@ -374,8 +383,8 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                             <GraduationCap className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-sm md:text-base truncate">
+                        <div className="flex-1 overflow-hidden">
+                          <h4 className="font-medium text-sm md:text-base truncate min-w-0">
                             {activity.title}
                           </h4>
                           <p className="text-xs md:text-sm text-muted-foreground">
@@ -441,7 +450,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                             asChild
                           >
                             <Link
-                              href={`/${subjectSlug}/esercizi/${
+                              href={`/${subjectSlug}/esercizi/card/${
                                 (activity as RecentTheoryItem).slug
                               }?referrer=statistiche`}
                             >
@@ -468,7 +477,9 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
         <CardHeader className="mb-0 pb-0">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Award className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
-            <span className="truncate">Migliora la tua preparazione</span>
+            <span className="truncate min-w-0">
+              Migliora la tua preparazione
+            </span>
           </CardTitle>
           <h4 className="font-medium mb-3 text-xs md:text-sm text-muted-foreground">
             Consigli per uno studio efficace
