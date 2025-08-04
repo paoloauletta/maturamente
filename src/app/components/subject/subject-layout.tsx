@@ -139,28 +139,6 @@ export default function SubjectLayoutClient({
     }
   }, [session, subjectSlug]);
 
-  // Check if user has a username set
-  useEffect(() => {
-    const checkUsername = async () => {
-      if (session?.user) {
-        try {
-          const response = await fetch("/api/user/check-username");
-          const data = await response.json();
-
-          if (response.ok && !data.hasUsername) {
-            router.push("/username-setup");
-          }
-        } catch (error) {
-          console.error("Error checking username:", error);
-        }
-      }
-    };
-
-    if (session) {
-      checkUsername();
-    }
-  }, [session, router]);
-
   // Prevent hydration errors by only rendering on client side
   useEffect(() => {
     setIsMounted(true);

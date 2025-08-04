@@ -97,9 +97,9 @@ export default function FAQ({
             projects - no recurring fees or restrictions.
           </p>
           <p className="text-muted-foreground mb-4 max-w-[580px]">
-            For complete details about licensing and usage rights, check out{" "}
+            Per i dettagli completi su licenze e diritti di utilizzo, consulta{" "}
             <Link href="/pricing" className="text-foreground underline">
-              the pricing page
+              la pagina dei prezzi
             </Link>
             .
           </p>

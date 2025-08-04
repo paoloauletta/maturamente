@@ -11,7 +11,7 @@ export default function DashboardMaturamenteLayout({
       <div className="mb-10">
         <GeneralNavbar variant="dashboard" />
       </div>
-      <div className="h-full">{children}</div>
+      <div>{children}</div>
       <DashboardFooter />
     </div>
   );

@@ -26,7 +26,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import SubscriptionManagement from "./subscription-management";
 
 // Create a standalone LogoutButton component
 export function LogoutButton() {
@@ -253,6 +254,9 @@ export default function SettingsClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* Subscription Management Section */}
+      <SubscriptionManagement userId={id} />
 
       {/* Account Danger Section */}
       <Card className="border-destructive/30">

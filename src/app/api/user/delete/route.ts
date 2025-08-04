@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { stripe } from "@/lib/stripe";
 import { db } from "@/db/drizzle";
 import {
   users,
+  subscriptions,
+  pendingSubscriptionChanges,
+  relationSubjectsUserTable,
+  noteStudySessionsTable,
   completedTopicsTable,
   completedSubtopicsTable,
   completedExercisesTable,
@@ -30,8 +35,71 @@ export async function DELETE(request: NextRequest) {
     console.log("Starting account deletion for user:", user.id);
 
     try {
-      // Without transactions, delete all user-related data sequentially
+      // Step 1: Cancel Stripe subscription if it exists
+      console.log("Checking for active subscription...");
+      const userSubscription = await db
+        .select()
+        .from(subscriptions)
+        .where(eq(subscriptions.user_id, user.id))
+        .limit(1);
+
+      if (
+        userSubscription.length > 0 &&
+        userSubscription[0].stripe_subscription_id
+      ) {
+        const stripeSubscriptionId = userSubscription[0].stripe_subscription_id;
+        console.log(
+          `Found subscription: ${stripeSubscriptionId}, canceling...`
+        );
+
+        try {
+          // Cancel the subscription immediately in Stripe
+          await stripe.subscriptions.cancel(stripeSubscriptionId);
+          console.log("Successfully canceled Stripe subscription");
+        } catch (stripeError) {
+          console.error("Error canceling Stripe subscription:", stripeError);
+          // Continue with account deletion even if Stripe cancellation fails
+          // This prevents the user from being stuck if there's a Stripe API issue
+        }
+
+        // Update our local subscription record
+        await db
+          .update(subscriptions)
+          .set({
+            status: "canceled",
+            cancel_at_period_end: false,
+            updated_at: new Date(),
+          })
+          .where(eq(subscriptions.user_id, user.id));
+        console.log("Updated local subscription record to canceled");
+      } else {
+        console.log("No active subscription found");
+      }
+
+      // Step 2: Delete all user-related data sequentially
       console.log("Deleting user data sequentially");
+
+      // Delete user's study sessions
+      await db
+        .delete(noteStudySessionsTable)
+        .where(eq(noteStudySessionsTable.user_id, user.id));
+      console.log("Deleted study sessions");
+
+      // Delete user's subject access
+      await db
+        .delete(relationSubjectsUserTable)
+        .where(eq(relationSubjectsUserTable.user_id, user.id));
+      console.log("Deleted subject access");
+
+      // Delete pending subscription changes (must be before subscription records)
+      await db
+        .delete(pendingSubscriptionChanges)
+        .where(eq(pendingSubscriptionChanges.user_id, user.id));
+      console.log("Deleted pending subscription changes");
+
+      // Delete subscription records
+      await db.delete(subscriptions).where(eq(subscriptions.user_id, user.id));
+      console.log("Deleted subscription records");
 
       // Delete all user's completed topics
       await db
@@ -96,7 +164,8 @@ export async function DELETE(request: NextRequest) {
     // Send a flag that the client can use to redirect to the logout URL
     return NextResponse.json(
       {
-        message: "Account deleted successfully",
+        message:
+          "Account deleted successfully. Your subscription has been canceled and you will not be charged again.",
         shouldLogout: true,
       },
       { status: 200 }

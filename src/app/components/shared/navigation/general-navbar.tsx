@@ -141,9 +141,42 @@ const UserAvatarDropdown = () => {
   const { data: session } = useSession();
   const router = useRouter();
   const user = session?.user;
+  const [hasSubscription, setHasSubscription] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check subscription status on component mount
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/user/subscription-status");
+        if (response.ok) {
+          const data = await response.json();
+          setHasSubscription(data?.isActive || false);
+        } else {
+          setHasSubscription(false);
+        }
+      } catch (error) {
+        console.error("Error checking subscription:", error);
+        setHasSubscription(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSubscription();
+  }, [user?.id]);
 
   const handleSettingsClick = () => {
     router.push("/dashboard/settings");
+  };
+
+  const handleSubscribeClick = () => {
+    router.push("/pricing");
   };
 
   // Get first letter of name or email for avatar fallback
@@ -178,10 +211,13 @@ const UserAvatarDropdown = () => {
           <span>Settings</span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem>
-          <Sparkles className="mr-2 h-4 w-4" />
-          <span>Upgrade to Pro</span>
-        </DropdownMenuItem>
+        {/* Only show subscribe option if user doesn't have an active subscription */}
+        {!isLoading && !hasSubscription && (
+          <DropdownMenuItem onClick={handleSubscribeClick}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            <span>Iscriviti subito</span>
+          </DropdownMenuItem>
+        )}
 
         <DropdownMenuSeparator />
 

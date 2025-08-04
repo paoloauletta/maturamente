@@ -7,6 +7,7 @@ import {
   primaryKey,
   uuid,
   boolean,
+  decimal,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
@@ -16,6 +17,47 @@ export const waitList = pgTable("waiting_list", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   unsubscribed: boolean("unsubscribed").default(false),
 });
+
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  user_id: text("user_id").references(() => users.id),
+  stripe_customer_id: text("stripe_customer_id").unique(),
+  stripe_subscription_id: text("stripe_subscription_id").unique(),
+  stripe_price_id: text("stripe_price_id"), // Primary price ID (for custom plans)
+  status: text("status").notNull(), // active, canceled, past_due, etc.
+  subject_count: integer("subject_count").notNull(), // Number of subjects in the subscription
+  custom_price: decimal("custom_price", { precision: 10, scale: 2 }).notNull(), // Total price for the subscription
+  current_period_start: timestamp("current_period_start"),
+  current_period_end: timestamp("current_period_end"),
+  cancel_at_period_end: boolean("cancel_at_period_end").default(false),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Table to track pending subscription changes (downgrades, scheduled upgrades)
+export const pendingSubscriptionChanges = pgTable(
+  "pending_subscription_changes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    user_id: text("user_id")
+      .references(() => users.id)
+      .notNull(),
+    subscription_id: uuid("subscription_id")
+      .references(() => subscriptions.id)
+      .notNull(),
+    change_type: text("change_type").notNull(), // 'upgrade', 'downgrade', 'cancel'
+    timing: text("timing").notNull(), // 'immediate', 'next_period'
+    new_subject_ids: jsonb("new_subject_ids"), // Array of subject IDs for the new plan
+    new_subject_count: integer("new_subject_count"), // Number of subjects in new plan
+    new_price: decimal("new_price", { precision: 10, scale: 2 }), // New price for the plan
+    proration_amount: decimal("proration_amount", { precision: 10, scale: 2 }), // Proration charge for immediate upgrades
+    stripe_schedule_id: text("stripe_schedule_id"), // Stripe subscription schedule ID for delayed changes
+    scheduled_date: timestamp("scheduled_date"), // When the change should take effect
+    status: text("status").notNull().default("pending"), // 'pending', 'applied', 'cancelled', 'failed'
+    created_at: timestamp("created_at").notNull().defaultNow(),
+    updated_at: timestamp("updated_at").notNull().defaultNow(),
+  }
+);
 
 export const users = pgTable("user", {
   id: text("id")
@@ -291,7 +333,7 @@ export const relationSubjectsUserTable = pgTable("relation_subjects_user", {
 export const notesTable = pgTable("notes", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
-  pdf_url: text("pdf_url").notNull(),
+  storage_path: text("storage_path").notNull(),
   subject_id: uuid("subject_id").references(() => subjectsTable.id),
   slug: text("slug").notNull().default(""),
   created_at: timestamp("created_at").notNull().defaultNow(),
