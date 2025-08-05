@@ -46,7 +46,7 @@ async function NotePageServer({
 
 function NotePageLoading() {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full w-full overflow-hidden">
       {/* Left section - PDF placeholder */}
       <div className="flex-1 flex items-center justify-center bg-muted/20">
         <LoadingSpinner text="Caricamento appunto..." size="sm" />
@@ -64,8 +64,10 @@ export default async function NotePage({ params }: NotePageProps) {
   const { "subject-slug": subjectSlug, "note-slug": noteSlug } = await params;
 
   return (
-    <Suspense fallback={<NotePageLoading />}>
-      <NotePageServer subjectSlug={subjectSlug} noteSlug={noteSlug} />
-    </Suspense>
+    <div className="fixed top-14 lg:top-[60px] bottom-0 left-0 md:left-[280px] right-0 overflow-auto">
+      <Suspense fallback={<NotePageLoading />}>
+        <NotePageServer subjectSlug={subjectSlug} noteSlug={noteSlug} />
+      </Suspense>
+    </div>
   );
 }

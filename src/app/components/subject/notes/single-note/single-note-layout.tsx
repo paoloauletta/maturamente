@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Star, FileText, Bot, Clock } from "lucide-react";
+import { Star, FileText, Bot, Clock, ArrowLeft, FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useRouter, useParams } from "next/navigation";
 import type { Note } from "@/types/notesTypes";
 import { ChatComponent, PDFComponent } from "./single-note-components";
 import { useStudySession } from "./use-study-session";
@@ -15,12 +17,38 @@ interface SingleNoteLayoutProps {
 export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
+  const router = useRouter();
+  const params = useParams();
 
   // Initialize study session tracking
   const { session, isTracking } = useStudySession({
     noteId: note.id,
     enabled: true,
   });
+
+  // Parse title to extract main title and subtitle
+  const parseTitle = (title: string) => {
+    const separatorIndex = title.indexOf(" - ");
+    if (separatorIndex !== -1) {
+      return {
+        mainTitle: title.substring(0, separatorIndex),
+        subtitle: title.substring(separatorIndex + 3),
+      };
+    }
+    return {
+      mainTitle: title,
+      subtitle: null,
+    };
+  };
+
+  const { mainTitle, subtitle } = parseTitle(note.title);
+
+  const handleBackToSubject = () => {
+    const subjectSlug = params["subject-slug"];
+    router.push(`/${subjectSlug}`);
+  };
 
   const handleToggleFavorite = async () => {
     setIsTogglingFavorite(true);
@@ -50,38 +78,83 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full w-full max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 pb-2">
-        <div className="flex items-center justify-between">
-          <h1 className="md:text-4xl text-2xl font-semibold text-foreground truncate">
-            {note.title}
-          </h1>
-          <div className="flex items-center gap-2">
-            {/* Study session indicator */}
-            {isTracking && (
-              <div className="flex items-center gap-1 text-green-600 text-sm">
-                <Clock className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  Sessione di studio attiva
-                </span>
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-8 w-full max-w-full overflow-x-hidden sticky top-0 z-10">
+        {/* Back button */}
+        <div className="mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBackToSubject}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Indietro
+          </Button>
+        </div>
+
+        {/* Title and metadata */}
+        <div className="space-y-3 w-full max-w-full">
+          <div className="flex items-start justify-between border-b pb-4 gap-2 w-full">
+            <div className="flex-1 min-w-0 overflow-hidden pr-2">
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-semibold text-foreground truncate w-full">
+                {mainTitle}
+              </h1>
+              {subtitle && (
+                <h2 className="text-base sm:text-lg md:text-xl text-muted-foreground mt-1 truncate w-full">
+                  {subtitle}
+                </h2>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Star
+                className={cn(
+                  "md:h-5 h-4 md:w-5 w-4 transition-colors hover:text-yellow-400 hover:scale-110 transition-all cursor-pointer",
+                  isFavorite && "fill-yellow-400 text-yellow-400 cursor-pointer"
+                )}
+                onClick={handleToggleFavorite}
+              />
+            </div>
+          </div>
+
+          {/* Description and metadata */}
+          <div className="space-y-2 w-full max-w-full">
+            {note.description && (
+              <div className="overflow-hidden w-full">
+                <p
+                  className={cn(
+                    "text-muted-foreground text-sm md:text-base break-words w-full overflow-wrap-anywhere",
+                    !isDescriptionExpanded && "line-clamp-2"
+                  )}
+                >
+                  {note.description}
+                </p>
+                <button
+                  onClick={() =>
+                    setIsDescriptionExpanded(!isDescriptionExpanded)
+                  }
+                  className="text-primary text-sm hover:underline mt-1 focus:outline-none"
+                >
+                  {isDescriptionExpanded ? "Leggi di meno" : "Leggi di più"}
+                </button>
               </div>
             )}
-
-            <Star
-              className={cn(
-                "md:h-5 h-4 md:w-5 w-4 transition-colors hover:text-yellow-400 hover:scale-110 transition-all cursor-pointer",
-                isFavorite && "fill-yellow-400 text-yellow-400 cursor-pointer"
-              )}
-              onClick={handleToggleFavorite}
-            />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground w-full">
+              <div className="flex items-center gap-1 min-w-0">
+                <FileIcon className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">
+                  {note.n_pages} {note.n_pages === 1 ? "pagina" : "pagine"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Mobile Tab Interface */}
-      <div className="md:hidden flex-1">
-        <Tabs defaultValue="pdf" className="h-full flex flex-col">
+      <div className="md:hidden flex-1 px-4 w-full max-w-full overflow-x-hidden">
+        <Tabs defaultValue="pdf" className="h-full flex flex-col w-full">
           <TabsList className="grid w-full grid-cols-2 mt-4">
             <TabsTrigger value="pdf" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -93,14 +166,20 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="pdf" className="flex-1 mt-2">
-            <div className="h-full rounded-lg border overflow-hidden">
+          <TabsContent
+            value="pdf"
+            className="flex-1 mt-2 data-[state=active]:flex data-[state=active]:flex-col w-full max-w-full"
+          >
+            <div className="flex-1 rounded-lg border overflow-hidden min-h-0 w-full">
               <PDFComponent note={note} />
             </div>
           </TabsContent>
 
-          <TabsContent value="chat" className="flex-1 mt-2">
-            <div className="h-full rounded-lg border overflow-hidden">
+          <TabsContent
+            value="chat"
+            className="flex-1 mt-2 data-[state=active]:flex data-[state=active]:flex-col w-full max-w-full"
+          >
+            <div className="flex-1 rounded-lg border overflow-hidden min-h-0 w-full">
               <ChatComponent />
             </div>
           </TabsContent>
@@ -108,18 +187,20 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Desktop Side-by-Side Layout */}
-      <div className="hidden md:flex flex-1 bg-background">
+      <div className="hidden md:flex flex-1 bg-background min-h-0 w-full max-w-full overflow-x-hidden">
         {/* Left section - PDF Viewer */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
           {/* PDF Viewer */}
-          <div className="flex-1 relative">
+          <div className="flex-1 relative min-h-0 overflow-hidden w-full">
             <PDFComponent note={note} />
           </div>
         </div>
 
         {/* Right section - AI Chat */}
-        <div className="w-80 lg:w-96 border-l bg-background">
-          <ChatComponent />
+        <div className="w-80 lg:w-96 border-l bg-background flex flex-col min-h-0 flex-shrink-0">
+          <div className="flex-1 min-h-0 overflow-hidden w-full">
+            <ChatComponent />
+          </div>
         </div>
       </div>
     </div>
