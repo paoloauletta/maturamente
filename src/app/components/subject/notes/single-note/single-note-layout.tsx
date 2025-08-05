@@ -145,7 +145,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Mobile Tab Interface */}
-      <div className="md:hidden flex-1 px-4 h-screen">
+      <div className="md:hidden flex-1 px-4">
         <Tabs defaultValue="pdf" className="h-full flex flex-col">
           <TabsList className="grid w-full grid-cols-2 mt-4">
             <TabsTrigger value="pdf" className="flex items-center gap-2">
@@ -179,7 +179,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Desktop Side-by-Side Layout */}
-      <div className="hidden md:flex flex-1 bg-background h-screen">
+      <div className="hidden md:flex flex-1 bg-background min-h-0">
         {/* Left section - PDF Viewer */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* PDF Viewer */}
