@@ -208,7 +208,7 @@ const UserAvatarDropdown = () => {
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={handleSettingsClick}>
           <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+          <span>Impostazioni</span>
         </DropdownMenuItem>
 
         {/* Only show subscribe option if user doesn't have an active subscription */}
@@ -223,7 +223,7 @@ const UserAvatarDropdown = () => {
 
         <DropdownMenuItem onClick={() => signOut()}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Logout</span>
+          <span>Esci</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

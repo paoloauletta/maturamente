@@ -336,6 +336,7 @@ export const notesTable = pgTable("notes", {
   description: text("description").notNull(),
   storage_path: text("storage_path").notNull(),
   subject_id: uuid("subject_id").references(() => subjectsTable.id),
+  n_pages: integer("n_pages").notNull().default(1),
   slug: text("slug").notNull(),
   created_at: timestamp("created_at").notNull().defaultNow(),
 });

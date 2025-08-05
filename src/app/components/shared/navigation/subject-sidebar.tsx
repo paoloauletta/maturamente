@@ -72,6 +72,43 @@ export default function SubjectSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
+  const [hasSubscription, setHasSubscription] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check subscription status on component mount
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/user/subscription-status");
+        if (response.ok) {
+          const data = await response.json();
+          setHasSubscription(data?.isActive || false);
+        } else {
+          setHasSubscription(false);
+        }
+      } catch (error) {
+        console.error("Error checking subscription:", error);
+        setHasSubscription(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSubscription();
+  }, [user?.id]);
+
+  const handleSettingsClick = () => {
+    router.push("/dashboard/settings");
+  };
+
+  const handleSubscribeClick = () => {
+    router.push("/pricing");
+  };
 
   // Function to check if a link should be active based on the current pathname
   const isLinkActive = (href: string): boolean => {
@@ -101,14 +138,6 @@ export default function SubjectSidebar({
       onItemClick();
     }
     router.push(href);
-  };
-
-  // Handle settings navigation
-  const handleSettingsClick = () => {
-    if (onItemClick) {
-      onItemClick();
-    }
-    router.push("/dashboard/settings");
   };
 
   // Get first letter of name or email for avatar fallback
@@ -252,19 +281,22 @@ export default function SubjectSidebar({
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={handleSettingsClick}>
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                      <span>Impostazioni</span>
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      <span>Upgrade to Pro</span>
-                    </DropdownMenuItem>
+                    {/* Only show subscribe option if user doesn't have an active subscription */}
+                    {!isLoading && !hasSubscription && (
+                      <DropdownMenuItem onClick={handleSubscribeClick}>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        <span>Iscriviti subito</span>
+                      </DropdownMenuItem>
+                    )}
 
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem onClick={() => signOut()}>
                       <LogOut className="mr-2 h-4 w-4" />
-                      <span>Logout</span>
+                      <span>Esci</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

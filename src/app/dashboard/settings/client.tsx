@@ -38,7 +38,7 @@ export function LogoutButton() {
   return (
     <Button variant="outline" onClick={handleSignOut} className="gap-2">
       <LogOut className="h-4 w-4" />
-      Disconnetti
+      Esci
     </Button>
   );
 }
@@ -295,15 +295,16 @@ export default function SettingsClient({
                     permanentemente.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+                <AlertDialogFooter className="flex flex-col-reverse md:flex-row gap-2">
                   <AlertDialogCancel>Annulla</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  <Button
+                    variant="destructive"
+                    className="text-white cursor-pointer"
                     onClick={deleteAccount}
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Eliminazione..." : "Sì, elimina account"}
-                  </AlertDialogAction>
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

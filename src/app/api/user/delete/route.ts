@@ -16,6 +16,7 @@ import {
   flaggedExercisesCardsTable,
   completedSimulationsTable,
   flaggedSimulationsTable,
+  flaggedNotesTable,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
@@ -112,6 +113,12 @@ export async function DELETE(request: NextRequest) {
         .delete(completedSubtopicsTable)
         .where(eq(completedSubtopicsTable.user_id, user.id));
       console.log("Deleted completed subtopics");
+
+      // Delete user's flagged notes
+      await db
+        .delete(flaggedNotesTable)
+        .where(eq(flaggedNotesTable.user_id, user.id));
+      console.log("Deleted flagged notes");
 
       // Delete all user's completed exercises
       await db

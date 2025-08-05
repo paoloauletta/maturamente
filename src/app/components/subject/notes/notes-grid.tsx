@@ -9,8 +9,9 @@ import {
 } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, BookOpen } from "lucide-react";
-import { NoteCard } from "./note-card";
+import { NoteRow } from "./note-row";
 import type { Note, SubjectInfo } from "@/types/notesTypes";
+import { generatePreviewUrls } from "@/utils/preview-urls";
 
 interface NotesGridClientProps {
   allNotes: Note[];
@@ -27,6 +28,7 @@ export function NotesGridClient({
   const [allNotes, setAllNotes] = useState(initialAllNotes);
   const [favoriteNotes, setFavoriteNotes] = useState(initialFavoriteNotes);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
 
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
@@ -42,6 +44,12 @@ export function NotesGridClient({
       document.documentElement.style.removeProperty("--subject-color");
     };
   }, [subject?.color]);
+
+  // Generate preview URLs for notes
+  useEffect(() => {
+    const urls = generatePreviewUrls(allNotes);
+    setPreviewUrls(urls);
+  }, [allNotes]);
 
   const handleToggleFavorite = useCallback(
     async (noteId: string, isFavorite: boolean) => {
@@ -142,7 +150,7 @@ export function NotesGridClient({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Cerca simulazioni..."
+            placeholder="Cerca appunti..."
             className="pl-10 w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -167,13 +175,14 @@ export function NotesGridClient({
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="flex flex-col gap-2">
               {filteredFavoriteNotes.map((note) => (
-                <NoteCard
+                <NoteRow
                   key={note.id}
                   note={note}
                   onToggleFavorite={handleToggleFavorite}
                   isLoading={isTogglingFavorite}
+                  previewUrl={previewUrls[note.id]}
                 />
               ))}
             </div>
@@ -192,13 +201,14 @@ export function NotesGridClient({
         </div>
 
         {hasSearchResults ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="flex flex-col gap-2">
             {filteredAllNotes.map((note) => (
-              <NoteCard
+              <NoteRow
                 key={note.id}
                 note={note}
                 onToggleFavorite={handleToggleFavorite}
                 isLoading={isTogglingFavorite}
+                previewUrl={previewUrls[note.id]}
               />
             ))}
           </div>

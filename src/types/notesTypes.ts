@@ -1,8 +1,10 @@
 export interface Note {
   id: string;
   title: string;
+  description: string;
   storage_path: string; // Storage path in Supabase for signed URL generation
   subject_id: string;
+  n_pages: number; // Number of pages in the PDF
   created_at: Date;
   slug: string;
   is_favorite?: boolean;
