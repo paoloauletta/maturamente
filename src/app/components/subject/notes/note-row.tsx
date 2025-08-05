@@ -68,13 +68,6 @@ export function NoteRow({
                   <FileText className="h-3 w-3" />
                   {note.n_pages} {note.n_pages === 1 ? "pagina" : "pagine"}
                 </span>
-                <span>
-                  {new Date(note.created_at).toLocaleDateString("it-IT", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
               </div>
             </div>
 

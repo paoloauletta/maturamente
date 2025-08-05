@@ -78,9 +78,9 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-w-full overflow-x-hidden">
+    <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-8 w-full max-w-full overflow-x-hidden sticky top-0 z-10">
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 pt-2 px-4 overflow-x-hidden">
         {/* Back button */}
         <div className="mb-4">
           <Button
@@ -89,20 +89,20 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
             onClick={handleBackToSubject}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 cursor-pointer" />
             Indietro
           </Button>
         </div>
 
         {/* Title and metadata */}
-        <div className="space-y-3 w-full max-w-full">
-          <div className="flex items-start justify-between border-b pb-4 gap-2 w-full">
-            <div className="flex-1 min-w-0 overflow-hidden pr-2">
-              <h1 className="text-xl sm:text-2xl md:text-4xl font-semibold text-foreground truncate w-full">
+        <div className="space-y-3 max-w-full">
+          <div className="flex items-start justify-between border-b pb-4 gap-4">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <h1 className="md:text-4xl text-2xl font-semibold text-foreground truncate">
                 {mainTitle}
               </h1>
               {subtitle && (
-                <h2 className="text-base sm:text-lg md:text-xl text-muted-foreground mt-1 truncate w-full">
+                <h2 className="md:text-xl text-lg text-muted-foreground mt-1 truncate">
                   {subtitle}
                 </h2>
               )}
@@ -119,12 +119,12 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
           </div>
 
           {/* Description and metadata */}
-          <div className="space-y-2 w-full max-w-full">
+          <div className="space-y-2 max-w-full">
             {note.description && (
-              <div className="overflow-hidden w-full">
+              <div className="overflow-hidden">
                 <p
                   className={cn(
-                    "text-muted-foreground text-sm md:text-base break-words w-full overflow-wrap-anywhere",
+                    "text-muted-foreground text-sm md:text-base break-words",
                     !isDescriptionExpanded && "line-clamp-2"
                   )}
                 >
@@ -140,21 +140,13 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground w-full">
-              <div className="flex items-center gap-1 min-w-0">
-                <FileIcon className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">
-                  {note.n_pages} {note.n_pages === 1 ? "pagina" : "pagine"}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Mobile Tab Interface */}
-      <div className="md:hidden flex-1 px-4 w-full max-w-full overflow-x-hidden">
-        <Tabs defaultValue="pdf" className="h-full flex flex-col w-full">
+      <div className="md:hidden flex-1 px-4">
+        <Tabs defaultValue="pdf" className="h-full flex flex-col">
           <TabsList className="grid w-full grid-cols-2 mt-4">
             <TabsTrigger value="pdf" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -168,18 +160,18 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
 
           <TabsContent
             value="pdf"
-            className="flex-1 mt-2 data-[state=active]:flex data-[state=active]:flex-col w-full max-w-full"
+            className="flex-1 mt-2 data-[state=active]:flex data-[state=active]:flex-col"
           >
-            <div className="flex-1 rounded-lg border overflow-hidden min-h-0 w-full">
+            <div className="flex-1 rounded-lg border overflow-hidden min-h-0">
               <PDFComponent note={note} />
             </div>
           </TabsContent>
 
           <TabsContent
             value="chat"
-            className="flex-1 mt-2 data-[state=active]:flex data-[state=active]:flex-col w-full max-w-full"
+            className="flex-1 mt-2 data-[state=active]:flex data-[state=active]:flex-col"
           >
-            <div className="flex-1 rounded-lg border overflow-hidden min-h-0 w-full">
+            <div className="flex-1 rounded-lg border overflow-hidden min-h-0">
               <ChatComponent />
             </div>
           </TabsContent>
@@ -187,18 +179,18 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Desktop Side-by-Side Layout */}
-      <div className="hidden md:flex flex-1 bg-background min-h-0 w-full max-w-full overflow-x-hidden">
+      <div className="hidden md:flex flex-1 bg-background min-h-0">
         {/* Left section - PDF Viewer */}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* PDF Viewer */}
-          <div className="flex-1 relative min-h-0 overflow-hidden w-full">
+          <div className="flex-1 relative min-h-0 overflow-hidden">
             <PDFComponent note={note} />
           </div>
         </div>
 
         {/* Right section - AI Chat */}
-        <div className="w-80 lg:w-96 border-l bg-background flex flex-col min-h-0 flex-shrink-0">
-          <div className="flex-1 min-h-0 overflow-hidden w-full">
+        <div className="w-80 lg:w-96 border-l bg-background flex flex-col min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <ChatComponent />
           </div>
         </div>
