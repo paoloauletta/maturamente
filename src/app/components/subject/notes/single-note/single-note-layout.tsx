@@ -96,13 +96,13 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
 
         {/* Title and metadata */}
         <div className="space-y-3 max-w-full">
-          <div className="flex items-start justify-between border-b pb-4 gap-4">
-            <div className="flex-1 min-w-0 overflow-hidden">
-              <h1 className="md:text-4xl text-2xl font-semibold text-foreground truncate">
+          <div className="flex items-start justify-between border-b pb-4 gap-4 max-w-full">
+            <div className="flex-1 overflow-hidden">
+              <h1 className="md:text-4xl text-2xl font-semibold text-foreground break-words">
                 {mainTitle}
               </h1>
               {subtitle && (
-                <h2 className="md:text-xl text-lg text-muted-foreground mt-1 truncate">
+                <h2 className="md:text-xl text-lg text-muted-foreground mt-1 break-words line-clamp-1">
                   {subtitle}
                 </h2>
               )}
@@ -145,7 +145,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Mobile Tab Interface */}
-      <div className="md:hidden flex-1 px-4">
+      <div className="md:hidden flex-1 px-4 h-screen">
         <Tabs defaultValue="pdf" className="h-full flex flex-col">
           <TabsList className="grid w-full grid-cols-2 mt-4">
             <TabsTrigger value="pdf" className="flex items-center gap-2">
@@ -179,7 +179,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Desktop Side-by-Side Layout */}
-      <div className="hidden md:flex flex-1 bg-background min-h-0">
+      <div className="hidden md:flex flex-1 bg-background h-screen">
         {/* Left section - PDF Viewer */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* PDF Viewer */}
