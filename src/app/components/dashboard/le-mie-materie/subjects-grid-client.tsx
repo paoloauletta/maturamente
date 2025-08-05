@@ -5,6 +5,7 @@ import { SubjectCard } from "./subject-card-client";
 import { Button } from "@/components/ui/button";
 import { Plus, BookOpen } from "lucide-react";
 import type { UserSubject } from "@/types/subjectsTypes";
+import Link from "next/link";
 
 interface SubjectsGridProps {
   subjects: UserSubject[];
@@ -73,10 +74,12 @@ export function SubjectsGrid({ subjects, error }: SubjectsGridProps) {
             disponibili
           </p>
         </div>
-        <Button className="gap-2" variant="outline">
-          <Plus className="h-4 w-4" />
-          Acquista nuove materie
-        </Button>
+        <Link href="/dashboard/settings">
+          <Button className="gap-2 cursor-pointer" variant="outline">
+            <Plus className="h-4 w-4" />
+            Acquista nuove materie
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

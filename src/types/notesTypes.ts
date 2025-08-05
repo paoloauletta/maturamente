@@ -1,7 +1,7 @@
 export interface Note {
   id: string;
   title: string;
-  pdf_url: string;
+  storage_path: string; // Storage path in Supabase for signed URL generation
   subject_id: string;
   created_at: Date;
   slug: string;

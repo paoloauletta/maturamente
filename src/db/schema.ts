@@ -333,9 +333,10 @@ export const relationSubjectsUserTable = pgTable("relation_subjects_user", {
 export const notesTable = pgTable("notes", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
+  description: text("description").notNull(),
   storage_path: text("storage_path").notNull(),
   subject_id: uuid("subject_id").references(() => subjectsTable.id),
-  slug: text("slug").notNull().default(""),
+  slug: text("slug").notNull(),
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
 

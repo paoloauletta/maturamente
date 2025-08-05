@@ -65,7 +65,7 @@ export const getSubjectNotes = cache(
       const allNotes: Note[] = notesWithFavorites.map((row) => ({
         id: row.id,
         title: row.title,
-        pdf_url: row.storage_path,
+        storage_path: row.storage_path,
         subject_id: row.subject_id || "",
         slug: row.slug || "",
         created_at: row.created_at,
@@ -105,7 +105,7 @@ export const getFavoriteNotes = cache(
           note_id: flaggedNotesTable.note_id,
           created_at: flaggedNotesTable.created_at,
           note_title: notesTable.title,
-          note_pdf_url: notesTable.storage_path,
+          note_storage_path: notesTable.storage_path,
           note_subject_id: notesTable.subject_id,
           note_slug: notesTable.slug,
           note_created_at: notesTable.created_at,
@@ -123,7 +123,7 @@ export const getFavoriteNotes = cache(
         note: {
           id: row.note_id || "",
           title: row.note_title,
-          pdf_url: row.note_pdf_url,
+          storage_path: row.note_storage_path,
           subject_id: row.note_subject_id || "",
           slug: row.note_slug || "",
           created_at: row.note_created_at,
@@ -165,7 +165,7 @@ export const getNoteBySlug = cache(
         .select({
           id: notesTable.id,
           title: notesTable.title,
-          pdf_url: notesTable.storage_path,
+          storage_path: notesTable.storage_path,
           subject_id: notesTable.subject_id,
           slug: notesTable.slug,
           created_at: notesTable.created_at,
@@ -195,7 +195,7 @@ export const getNoteBySlug = cache(
       return {
         id: note.id,
         title: note.title,
-        pdf_url: note.pdf_url,
+        storage_path: note.storage_path,
         subject_id: note.subject_id || "",
         slug: note.slug || "",
         created_at: note.created_at,
