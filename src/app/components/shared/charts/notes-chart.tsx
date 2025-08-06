@@ -244,7 +244,7 @@ export function NotesChart({
                 size="sm"
                 onClick={() => setChartType("bar")}
                 className={`text-xs w-full md:w-auto ${
-                  chartType === "bar" ? "text-white" : "text-black"
+                  chartType === "bar" ? "text-white" : "text-foreground"
                 }`}
                 style={
                   chartType === "bar" ? { backgroundColor: subjectColor } : {}
@@ -258,7 +258,7 @@ export function NotesChart({
                 size="sm"
                 onClick={() => setChartType("line")}
                 className={`text-xs w-full md:w-auto ${
-                  chartType === "line" ? "text-white" : "text-black"
+                  chartType === "line" ? "text-white" : "text-foreground"
                 }`}
                 style={
                   chartType === "line" ? { backgroundColor: subjectColor } : {}

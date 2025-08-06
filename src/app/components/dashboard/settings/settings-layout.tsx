@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/card";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -27,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
-import SubscriptionManagement from "./subscription-management";
+import SubscriptionManagement from "./settings-subscription-management";
 
 // Create a standalone LogoutButton component
 export function LogoutButton() {

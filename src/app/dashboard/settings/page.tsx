@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import SettingsClient from "./client";
+import SettingsClient from "@/app/components/dashboard/settings/settings-layout";
 import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";

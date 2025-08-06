@@ -170,7 +170,7 @@ export function NotesStatistics({
                   <span>Appunti recenti</span>
                 </CardTitle>
                 <CardDescription className="text-xs md:text-sm">
-                  Gli ultimi appunti che hai studiato
+                  Gli appunti che hai studiato più di recente
                 </CardDescription>
               </div>
             </CardHeader>

@@ -7,7 +7,7 @@ import {
   relationSubjectsUserTable,
   noteStudySessionsTable,
 } from "@/db/schema";
-import { eq, and, desc, count, countDistinct } from "drizzle-orm";
+import { eq, and, desc, count, countDistinct, sql } from "drizzle-orm";
 import type { Note, FavoriteNote, SubjectNotesData } from "@/types/notesTypes";
 import type { NotesStatisticsData, RecentNote } from "@/types/statisticsTypes";
 import {
@@ -304,6 +304,73 @@ export const getStudiedNotesCount = cache(
 );
 
 /**
+ * Get recent studied notes for a specific user and subject
+ * Returns unique notes with their most recent study session
+ */
+export const getRecentStudiedNotes = cache(
+  async (
+    userId: string,
+    subjectId: string,
+    limit: number = 5
+  ): Promise<RecentNote[]> => {
+    try {
+      // First, get the most recent study session for each note
+      const latestSessionsSubquery = db
+        .select({
+          note_id: noteStudySessionsTable.note_id,
+          latest_active_at:
+            sql<Date>`MAX(${noteStudySessionsTable.last_active_at})`.as(
+              "latest_active_at"
+            ),
+        })
+        .from(noteStudySessionsTable)
+        .innerJoin(
+          notesTable,
+          eq(noteStudySessionsTable.note_id, notesTable.id)
+        )
+        .where(
+          and(
+            eq(noteStudySessionsTable.user_id, userId),
+            eq(notesTable.subject_id, subjectId)
+          )
+        )
+        .groupBy(noteStudySessionsTable.note_id)
+        .as("latest_sessions");
+
+      // Then join with the original tables to get the complete note information
+      const recentStudiedNotesQuery = await db
+        .select({
+          note_id: notesTable.id,
+          note_title: notesTable.title,
+          note_slug: notesTable.slug,
+          subject_name: subjectsTable.name,
+          last_studied_at: latestSessionsSubquery.latest_active_at,
+        })
+        .from(latestSessionsSubquery)
+        .innerJoin(
+          notesTable,
+          eq(latestSessionsSubquery.note_id, notesTable.id)
+        )
+        .innerJoin(subjectsTable, eq(notesTable.subject_id, subjectsTable.id))
+        .orderBy(desc(latestSessionsSubquery.latest_active_at))
+        .limit(limit);
+
+      return recentStudiedNotesQuery.map((note) => ({
+        id: note.note_id,
+        title: note.note_title,
+        date: new Date(note.last_studied_at).toLocaleDateString("it-IT"),
+        subjectName: note.subject_name,
+        slug: note.note_slug || "",
+        type: "note" as const,
+      }));
+    } catch (error) {
+      console.error("Error fetching recent studied notes:", error);
+      return [];
+    }
+  }
+);
+
+/**
  * Get notes statistics for a specific user and subject
  */
 export const getNotesStatistics = cache(
@@ -357,17 +424,8 @@ export const getNotesStatistics = cache(
       // Since we're filtering by one subject, totalSubjects is always 1 if notes exist
       const totalSubjects = allUserNotesQuery.length > 0 ? 1 : 0;
 
-      // Get recent notes (last 5)
-      const recentNotes: RecentNote[] = allUserNotesQuery
-        .slice(0, 5)
-        .map((note) => ({
-          id: note.note_id,
-          title: note.note_title,
-          date: note.note_created_at.toLocaleDateString("it-IT"),
-          subjectName: note.subject_name,
-          slug: note.note_slug || "",
-          type: "note" as const,
-        }));
+      // Get recent studied notes (last 5 actually studied notes)
+      const recentNotes = await getRecentStudiedNotes(userId, subjectId, 5);
 
       // Get study session statistics for this subject
       const subjectSlug = allUserNotesQuery[0]?.subject_slug || "";
