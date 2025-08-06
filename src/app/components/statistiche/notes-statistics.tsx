@@ -10,15 +10,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  FileText,
-  BookOpen,
-  History,
-  Star,
-  FolderOpen,
-  Clock,
-  Timer,
-} from "lucide-react";
+import { FileText, BookOpen, History, Star, FolderOpen } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -47,24 +39,12 @@ export function NotesStatistics({
   const {
     totalNotes,
     favoriteNotes,
-    totalSubjects,
     favoritePercentage,
+    studiedNotes,
+    studiedPercentage,
     recentNotes,
-    totalStudyTimeMinutes,
-    totalStudySessions,
-    averageSessionTimeMinutes,
     monthlyStudyActivity,
   } = data;
-
-  // Format time for display
-  const formatStudyTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
-  };
 
   return (
     <div
@@ -116,39 +96,39 @@ export function NotesStatistics({
           </CardContent>
         </Card>
 
-        {/* Favorites Card */}
-        <Card className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-amber-500/5 to-background border-amber-500/20">
+        {/* Studied Notes Card */}
+        <Card className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-green-500/5 to-background border-green-500/20">
           <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-              <Star className="h-4 w-4 md:h-5 md:w-5 text-amber-500 flex-shrink-0" />
-              <span className="truncate">Appunti preferiti</span>
+              <BookOpen className="h-4 w-4 md:h-5 md:w-5 text-green-500 flex-shrink-0" />
+              <span className="truncate">Appunti Studiati</span>
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
-              I tuoi appunti contrassegnati come preferiti
+              Gli appunti che hai studiato almeno una volta
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 md:space-y-4">
             <div className="flex items-baseline justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="text-2xl md:text-3xl font-bold">
-                  {favoriteNotes}
+                  {studiedNotes}
                 </div>
                 <div className="text-xs md:text-sm text-muted-foreground">
                   su {totalNotes} appunti
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="text-xl md:text-2xl font-bold text-amber-500">
-                  {favoritePercentage}%
+                <div className="text-xl md:text-2xl font-bold text-green-500">
+                  {studiedPercentage}%
                 </div>
                 <div className="text-xs md:text-sm text-muted-foreground">
-                  preferiti
+                  studiati
                 </div>
               </div>
             </div>
             <Progress
-              value={favoritePercentage}
-              className="h-2 [&>div]:bg-amber-500 bg-amber-100 dark:bg-amber-900"
+              value={studiedPercentage}
+              className="h-2 [&>div]:bg-green-500 bg-green-100 dark:bg-green-900"
             />
           </CardContent>
         </Card>
@@ -187,7 +167,7 @@ export function NotesStatistics({
                     className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0"
                     style={{ color: subjectColor }}
                   />
-                  <span className="truncate">Appunti recenti</span>
+                  <span>Appunti recenti</span>
                 </CardTitle>
                 <CardDescription className="text-xs md:text-sm">
                   Gli ultimi appunti che hai studiato
@@ -207,7 +187,7 @@ export function NotesStatistics({
                           <FileText className="h-4 w-4 md:h-5 md:w-5 text-[color:var(--subject-color)]" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-medium text-sm md:text-base truncate">
+                          <h4 className="font-medium text-sm md:text-base break-words line-clamp-2">
                             {note.title}
                           </h4>
                           <p className="text-xs md:text-sm text-muted-foreground">

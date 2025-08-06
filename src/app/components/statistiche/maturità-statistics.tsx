@@ -95,7 +95,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
       <div className="w-full overflow-hidden">
         <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:space-y-0 md:gap-4">
           <div className="min-w-0 flex-1 md:block hidden">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight truncate">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
               Statistiche sulla tua Maturità
             </h2>
             <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
@@ -120,7 +120,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
           <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <BookMinus className="h-4 w-4 md:h-5 md:w-5 text-amber-500 flex-shrink-0" />
-              <span className="truncate min-w-0">Teoria</span>
+              <span className="min-w-0">Teoria</span>
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
               Il tuo progresso nello studio della teoria
@@ -184,7 +184,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
           <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
               <GraduationCap className="h-4 w-4 md:h-5 md:w-5 text-green-500 flex-shrink-0" />
-              <span className="truncate min-w-0">Esercizi</span>
+              <span className="min-w-0">Esercizi</span>
             </CardTitle>
             <CardDescription className="text-xs md:text-sm">
               Il tuo progresso negli esercizi pratici
@@ -249,7 +249,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
         <CardHeader className="pb-3 md:pb-6">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <SquareLibrary className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
-            <span className="truncate min-w-0">Simulazioni</span>
+            <span className="min-w-0">Simulazioni</span>
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
             Il tuo progresso nelle simulazioni d'esame
@@ -350,7 +350,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                     className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0"
                     style={{ color: subjectColor }}
                   />
-                  <span className="truncate min-w-0">Attività recente</span>
+                  <span className="min-w-0">Attività recente</span>
                 </CardTitle>
                 <CardDescription className="text-xs md:text-sm">
                   Le tue ultime attività completate
@@ -384,7 +384,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
                           )}
                         </div>
                         <div className="flex-1 overflow-hidden">
-                          <h4 className="font-medium text-sm md:text-base truncate min-w-0">
+                          <h4 className="font-medium text-sm md:text-base break-words line-clamp-2 min-w-0">
                             {activity.title}
                           </h4>
                           <p className="text-xs md:text-sm text-muted-foreground">
@@ -477,9 +477,7 @@ export function StatisticsMaturità({ data }: StatisticsClientProps) {
         <CardHeader className="mb-0 pb-0">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Award className="h-5 w-5 md:h-6 md:w-6 text-primary flex-shrink-0" />
-            <span className="truncate min-w-0">
-              Migliora la tua preparazione
-            </span>
+            <span className="min-w-0">Migliora la tua preparazione</span>
           </CardTitle>
           <h4 className="font-medium mb-3 text-xs md:text-sm text-muted-foreground">
             Consigli per uno studio efficace

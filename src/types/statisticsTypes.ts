@@ -65,6 +65,8 @@ export interface RecentExerciseCard {
 export interface NotesStatisticsData {
   totalNotes: number;
   favoriteNotes: number;
+  studiedNotes: number;
+  studiedPercentage: number;
   totalSubjects: number;
   notesWithFavorites: number;
   favoritePercentage: number;

@@ -1,6 +1,7 @@
-import { PricingPage } from "@/app/components/pricing/pricing-page";
+import { PricingPage } from "../../components/pricing/pricing-page";
 import { db } from "@/db/drizzle";
 import { subjectsTable } from "@/db/schema";
+import DashboardFooter from "../../components/shared/navigation/footer";
 
 export default async function PricingPageRoute() {
   // Fetch available subjects
@@ -16,5 +17,10 @@ export default async function PricingPageRoute() {
     .from(subjectsTable)
     .orderBy(subjectsTable.order_index);
 
-  return <PricingPage subjects={subjects} />;
+  return (
+    <>
+      <PricingPage subjects={subjects} />
+      <DashboardFooter />
+    </>
+  );
 }

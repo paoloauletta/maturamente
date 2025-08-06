@@ -5,8 +5,9 @@ import {
   flaggedNotesTable,
   subjectsTable,
   relationSubjectsUserTable,
+  noteStudySessionsTable,
 } from "@/db/schema";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, countDistinct } from "drizzle-orm";
 import type { Note, FavoriteNote, SubjectNotesData } from "@/types/notesTypes";
 import type { NotesStatisticsData, RecentNote } from "@/types/statisticsTypes";
 import {
@@ -275,6 +276,34 @@ export const getRecentNotesAcrossAllSubjects = cache(
 );
 
 /**
+ * Get count of studied notes for a specific user and subject
+ */
+export const getStudiedNotesCount = cache(
+  async (userId: string, subjectId: string): Promise<number> => {
+    try {
+      const studiedNotesResult = await db
+        .select({ count: countDistinct(noteStudySessionsTable.note_id) })
+        .from(noteStudySessionsTable)
+        .innerJoin(
+          notesTable,
+          eq(noteStudySessionsTable.note_id, notesTable.id)
+        )
+        .where(
+          and(
+            eq(noteStudySessionsTable.user_id, userId),
+            eq(notesTable.subject_id, subjectId)
+          )
+        );
+
+      return studiedNotesResult[0]?.count || 0;
+    } catch (error) {
+      console.error("Error fetching studied notes count:", error);
+      return 0;
+    }
+  }
+);
+
+/**
  * Get notes statistics for a specific user and subject
  */
 export const getNotesStatistics = cache(
@@ -315,6 +344,12 @@ export const getNotesStatistics = cache(
       const favoriteNotes = allUserNotesQuery.filter(
         (note) => note.is_favorite
       ).length;
+
+      // Get studied notes count
+      const studiedNotes = await getStudiedNotesCount(userId, subjectId);
+      const studiedPercentage =
+        totalNotes > 0 ? Math.round((studiedNotes / totalNotes) * 100) : 0;
+
       const notesWithFavorites = favoriteNotes;
       const favoritePercentage =
         totalNotes > 0 ? Math.round((favoriteNotes / totalNotes) * 100) : 0;
@@ -346,6 +381,8 @@ export const getNotesStatistics = cache(
       return {
         totalNotes,
         favoriteNotes,
+        studiedNotes,
+        studiedPercentage,
         totalSubjects,
         notesWithFavorites,
         favoritePercentage,

@@ -98,7 +98,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
         <div className="space-y-3 max-w-full">
           <div className="flex items-start justify-between border-b pb-4 gap-4 max-w-full">
             <div className="flex-1 overflow-hidden">
-              <h1 className="md:text-4xl text-2xl font-semibold text-foreground break-words">
+              <h1 className="md:text-4xl text-2xl font-semibold text-foreground break-words line-clamp-1">
                 {mainTitle}
               </h1>
               {subtitle && (
@@ -179,7 +179,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Desktop Side-by-Side Layout */}
-      <div className="hidden md:flex flex-1 bg-background min-h-0">
+      <div className="hidden md:flex flex-1 bg-background min-h-0 md:h-100 border-b">
         {/* Left section - PDF Viewer */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* PDF Viewer */}
