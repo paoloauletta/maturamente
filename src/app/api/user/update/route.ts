@@ -19,19 +19,10 @@ export async function POST(request: NextRequest) {
 
     // Parse the request body
     const body = await request.json();
-    const { username, fullName } = body;
-
-    if (!username) {
-      return NextResponse.json(
-        { error: "Username is required" },
-        { status: 400 }
-      );
-    }
+    const { fullName } = body;
 
     // Create an update object
-    const updateData: { username: string; name?: string } = {
-      username: username,
-    };
+    const updateData: { name?: string } = {};
 
     // Add fullName to update if provided
     if (fullName !== undefined) {

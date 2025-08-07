@@ -6,6 +6,7 @@ import {
   Calendar,
   CreditCard,
   Plus,
+  Minus,
   AlertTriangle,
   Settings,
   ExternalLink,
@@ -13,6 +14,7 @@ import {
   XCircle,
   Clock,
   Loader2,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,6 +98,9 @@ interface Subject {
   name: string;
   description: string;
   slug: string;
+  color: string;
+  maturita?: boolean;
+  order_index: number;
 }
 
 interface SubscriptionManagementProps {
@@ -338,14 +343,6 @@ export default function SubscriptionManagement({
     return <Badge variant="outline">Sconosciuto</Badge>;
   };
 
-  // Get current user subjects
-  const getCurrentSubjects = () => {
-    if (!userAccess || !subjects.length) return [];
-    return subjects.filter((subject) =>
-      userAccess.selectedSubjects.includes(subject.id)
-    );
-  };
-
   // Get subjects that will be removed in pending changes
   const getSubjectsToBeRemoved = () => {
     if (!userAccess || !pendingChanges.length) return [];
@@ -365,9 +362,12 @@ export default function SubscriptionManagement({
     return subjectsToRemove;
   };
 
-  // Check if a subject is pending removal
-  const isSubjectPendingRemoval = (subjectId: string) => {
-    return getSubjectsToBeRemoved().includes(subjectId);
+  const getActiveSubjects = () => {
+    if (!userAccess) return [];
+    const subjectsToRemove = getSubjectsToBeRemoved();
+    return userAccess.selectedSubjects.filter(
+      (subjectId) => !subjectsToRemove.includes(subjectId)
+    );
   };
 
   if (loading) {
@@ -425,24 +425,22 @@ export default function SubscriptionManagement({
             {getStatusBadge()}
           </CardTitle>
           <CardDescription>
-            Il tuo piano di abbonamento e stato attuale
+            Il tuo piano di abbonamento e gestione fatturazione
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Tipo Piano</p>
-              <p className="font-medium">Piano Personalizzato</p>
-            </div>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Prezzo</p>
-              <p className="font-medium">
+              <p className="font-medium text-lg">
                 €{subscription.price.toFixed(2)}/mese
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Materie</p>
-              <p className="font-medium">{subscription.subjectCount} materie</p>
+              <p className="font-medium text-lg">
+                {subscription.subjectCount} materie
+              </p>
               {getSubjectsToBeRemoved().length > 0 && (
                 <p className="text-xs text-orange-600 mt-1">
                   {getSubjectsToBeRemoved().length} in rimozione
@@ -455,84 +453,130 @@ export default function SubscriptionManagement({
                   ? "Cancellazione il"
                   : "Prossima fatturazione"}
               </p>
-              <p className="font-medium">
+              <p className="font-medium text-lg">
                 {formatDate(subscription.currentPeriodEnd)}
               </p>
             </div>
+          </div>
+          <div className="border-t pt-4">
+            <Button
+              onClick={openBillingPortal}
+              disabled={actionLoading}
+              className="w-full gap-2"
+              variant="outline"
+            >
+              <ExternalLink className="w-4 h-4" />
+              {actionLoading ? "Apertura..." : "Apri Portale Fatturazione"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Gestisci metodi di pagamento, fatture e cronologia
+            </p>
           </div>
         </CardContent>
       </Card>
 
       {/* Pending Changes Section */}
       {pendingChanges.length > 0 && (
-        <Card>
+        <Card className="border-red-200 bg-red-50/30 dark:bg-red-950/20 dark:border-red-800">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Modifiche in Sospeso
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Minus className="w-5 h-5 text-red-600" />
+                Riduzione Piano in Sospeso
+              </span>
+              <Badge variant="outline" className="border-red-500 text-red-600">
+                {pendingChanges.length} modifica
+                {pendingChanges.length > 1 ? "e" : ""}
+              </Badge>
             </CardTitle>
             <CardDescription>
-              Hai modifiche al tuo abbonamento che saranno applicate alla
-              prossima fatturazione
+              Riduzioni programmate per la prossima fatturazione
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {pendingChanges.map((change) => (
-              <div key={change.id} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="border-orange-500 text-orange-600"
-                    >
-                      <Clock className="w-3 h-3 mr-1" />
-                      {change.change_type === "downgrade"
-                        ? "Modifica del piano"
-                        : "Aggiornamento del piano"}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      Effettivo il {formatDate(change.scheduled_date)}
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleUndoPendingChange(change.id)}
-                    disabled={actionLoading}
-                  >
-                    Annulla Modifica
-                  </Button>
-                </div>
-
-                {change.change_type === "downgrade" && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">
-                      Materie che verranno rimosse:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {getSubjectsToBeRemoved().map((subjectId) => {
-                        const subject = subjects.find(
-                          (s) => s.id === subjectId
-                        );
-                        return subject ? (
-                          <Badge
-                            key={subjectId}
-                            variant="destructive"
-                            className="text-xs"
-                          >
-                            {subject.name}
+              <Card key={change.id} className="bg-background">
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-red-500 text-white">
+                            Riduzione Piano
                           </Badge>
-                        ) : null;
-                      })}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Effettivo: {formatDate(change.scheduled_date)}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUndoPendingChange(change.id)}
+                        disabled={actionLoading}
+                        className="w-full sm:w-auto"
+                      >
+                        Annulla
+                      </Button>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Nuovo prezzo: €{parseFloat(change.new_price).toFixed(2)}
-                      /mese
+
+                    {/* Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Nuovo Prezzo</div>
+                        <div className="text-lg font-bold text-red-600">
+                          €{parseFloat(change.new_price).toFixed(2)}/mese
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">
+                          Materie Rimanenti
+                        </div>
+                        <div className="text-lg font-bold">
+                          {change.new_subject_count} materie
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Subject Changes */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-red-600">
+                        Materie da rimuovere:
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {getSubjectsToBeRemoved().map((subjectId) => {
+                          const subject = subjects.find(
+                            (s) => s.id === subjectId
+                          );
+                          return subject ? (
+                            <Badge
+                              key={subjectId}
+                              variant="outline"
+                              className="text-xs border-red-500 text-red-600"
+                            >
+                              {subject.name}
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
+                </CardContent>
+              </Card>
             ))}
+
+            {/* Info Note */}
+            <div className="bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-red-800 dark:text-red-200">
+                  <strong>Importante:</strong> La riduzione del piano verrà
+                  applicata automaticamente alla prossima data di fatturazione.
+                  Continuerai ad avere accesso alle materie fino a quella data.
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -543,9 +587,8 @@ export default function SubscriptionManagement({
         userAccess &&
         subjects.length > 0 && (
           <SubscriptionChange
-            currentSubjects={userAccess.selectedSubjects}
+            currentSubjects={getActiveSubjects()}
             allSubjects={subjects}
-            currentPrice={subscription.price}
             pendingRemovals={getSubjectsToBeRemoved()}
             onChangeComplete={() => {
               // Show success message and auto-refresh
@@ -555,35 +598,6 @@ export default function SubscriptionManagement({
             }}
           />
         )}
-
-      {/* Billing Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Fatturazione e Pagamento
-          </CardTitle>
-          <CardDescription>
-            Gestisci i tuoi metodi di pagamento e le informazioni di
-            fatturazione
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            onClick={openBillingPortal}
-            disabled={actionLoading}
-            className="w-full gap-2"
-          >
-            <ExternalLink className="w-4 h-4" />
-            {actionLoading ? "Apertura..." : "Apri Portale Fatturazione"}
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            Il portale fatturazione ti permette di aggiornare i metodi di
-            pagamento, scaricare fatture e visualizzare la cronologia
-            fatturazione.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Subscription Actions */}
       <Card>

@@ -344,8 +344,8 @@ export function PricingPage({ subjects }: PricingPageProps) {
                           {selectedSubjects.length > 1 && (
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-muted-foreground">
-                                {selectedSubjects.length - 1} aggiuntiva
-                                {selectedSubjects.length - 1 === 1 ? "" : "e"}
+                                {selectedSubjects.length - 1} aggiuntiv
+                                {selectedSubjects.length - 1 === 1 ? "a" : "e"}
                               </span>
                               <span className="font-medium">
                                 €

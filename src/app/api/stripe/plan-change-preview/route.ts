@@ -6,8 +6,8 @@ import {
 } from "@/lib/stripe";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/drizzle";
-import { subscriptions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { subscriptions, pendingSubscriptionChanges } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,18 +57,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const currentSubjectCount = currentSubscription.subject_count || 0;
+    // Get pending changes to calculate the effective current subject count
+    const pendingChanges = await db
+      .select()
+      .from(pendingSubscriptionChanges)
+      .where(
+        and(
+          eq(
+            pendingSubscriptionChanges.subscription_id,
+            currentSubscription.id
+          ),
+          eq(pendingSubscriptionChanges.status, "pending")
+        )
+      );
+
+    // Calculate effective current subject count considering pending changes
+    let effectiveCurrentSubjectCount = currentSubscription.subject_count || 0;
+    let effectiveCurrentPrice = parseFloat(
+      currentSubscription.custom_price || "0"
+    );
+
+    // If there are pending downgrades, use the new count from the most recent pending change
+    if (pendingChanges.length > 0) {
+      const latestPendingChange = pendingChanges[pendingChanges.length - 1];
+      if (latestPendingChange.change_type === "downgrade") {
+        effectiveCurrentSubjectCount =
+          latestPendingChange.new_subject_count || 0;
+        effectiveCurrentPrice = parseFloat(
+          latestPendingChange.new_price || "0"
+        );
+      }
+    }
+
     const newSubjectCount = newSubjectIds.length;
 
     // Calculate pricing
-    const currentPrice = parseFloat(currentSubscription.custom_price || "0");
+    const currentPrice = effectiveCurrentPrice;
     const newPrice = calculateCustomPrice(newSubjectCount);
 
-    // Determine change type
+    // Determine change type based on effective current count
     const changeType =
-      newSubjectCount > currentSubjectCount
+      newSubjectCount > effectiveCurrentSubjectCount
         ? "upgrade"
-        : newSubjectCount < currentSubjectCount
+        : newSubjectCount < effectiveCurrentSubjectCount
         ? "downgrade"
         : "no_change";
 
@@ -104,12 +135,14 @@ export async function POST(request: NextRequest) {
       console.log("Preview calculation:", {
         currentPrice,
         newPrice,
-        currentSubjectCount,
+        storedSubjectCount: currentSubscription.subject_count,
+        effectiveCurrentSubjectCount,
         newSubjectCount,
         changeType,
         prorationAmount,
         periodProgress,
         priceDifference,
+        pendingChangesCount: pendingChanges.length,
       });
 
       return NextResponse.json({

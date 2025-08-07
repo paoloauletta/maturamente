@@ -60,9 +60,6 @@ export function SubjectSelector({
               style={
                 {
                   "--subject-color": subject.color,
-                  backgroundColor: isSelected
-                    ? `${subject.color}08`
-                    : "transparent",
                   boxShadow: isSelected
                     ? `0 8px 32px ${subject.color}20`
                     : "none",
@@ -143,9 +140,8 @@ export function SubjectSelector({
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-lg p-3">
           <Sparkles className="h-4 w-4 text-primary" />
           <span>
-            {selectedSubjects.length} materia
-            {selectedSubjects.length === 1 ? "" : "e"} selezionata
-            {selectedSubjects.length === 1 ? "" : "e"}
+            {selectedSubjects.length} materi
+            {selectedSubjects.length === 1 ? "a selezionata" : "e selezionate"}
           </span>
         </div>
       )}

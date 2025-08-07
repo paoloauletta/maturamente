@@ -48,7 +48,6 @@ interface SettingsClientProps {
   givenName: string;
   familyName: string;
   picture: string;
-  username: string;
 }
 
 export default function SettingsClient({
@@ -57,11 +56,9 @@ export default function SettingsClient({
   givenName,
   familyName,
   picture,
-  username: initialUsername,
 }: SettingsClientProps) {
   const router = useRouter();
   const [fullName, setFullName] = useState(`${givenName} ${familyName}`.trim());
-  const [username, setUsername] = useState(initialUsername || "");
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState<string>(picture || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +73,6 @@ export default function SettingsClient({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
           fullName,
         }),
       });
@@ -194,20 +190,6 @@ export default function SettingsClient({
                       </Button>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Username</Label>
-                    <div className="flex items-center justify-between mt-1">
-                      <p>{username || "Non impostato"}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsEditing(true)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
                 </>
               ) : (
                 <>
@@ -218,17 +200,6 @@ export default function SettingsClient({
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Il tuo nome completo"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Il tuo username"
                       className="mt-1"
                     />
                   </div>

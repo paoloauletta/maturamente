@@ -11,7 +11,7 @@ import {
   relationSubjectsUserTable,
   pendingSubscriptionChanges,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
@@ -333,18 +333,56 @@ async function storePendingDowngrade(
 
   const periodEnd = currentSubscription[0].current_period_end;
 
-  // Store the pending change
-  await db.insert(pendingSubscriptionChanges).values({
-    user_id: userId,
-    subscription_id: currentSubscription[0].id,
-    change_type: "downgrade",
-    timing: "next_period",
-    new_subject_ids: newSubjectIds,
-    new_subject_count: newSubjectCount,
-    new_price: newPrice.toString(),
-    scheduled_date: periodEnd,
-    status: "pending",
-  });
+  // Check for existing pending changes for this subscription
+  const existingPendingChanges = await db
+    .select()
+    .from(pendingSubscriptionChanges)
+    .where(
+      and(
+        eq(
+          pendingSubscriptionChanges.subscription_id,
+          currentSubscription[0].id
+        ),
+        eq(pendingSubscriptionChanges.status, "pending")
+      )
+    );
+
+  if (existingPendingChanges.length > 0) {
+    // Update existing pending change instead of creating a new one
+    const existingChange = existingPendingChanges[0];
+
+    await db
+      .update(pendingSubscriptionChanges)
+      .set({
+        new_subject_ids: newSubjectIds,
+        new_subject_count: newSubjectCount,
+        new_price: newPrice.toString(),
+        scheduled_date: periodEnd,
+        updated_at: new Date(),
+      })
+      .where(eq(pendingSubscriptionChanges.id, existingChange.id));
+
+    console.log("Updated existing pending subscription change:", {
+      changeId: existingChange.id,
+      newSubjectCount,
+      newPrice,
+    });
+  } else {
+    // Create new pending change
+    await db.insert(pendingSubscriptionChanges).values({
+      user_id: userId,
+      subscription_id: currentSubscription[0].id,
+      change_type: "downgrade",
+      timing: "next_period",
+      new_subject_ids: newSubjectIds,
+      new_subject_count: newSubjectCount,
+      new_price: newPrice.toString(),
+      scheduled_date: periodEnd,
+      status: "pending",
+    });
+
+    console.log("Created new pending subscription change for downgrade");
+  }
 
   // Update subscription record with new pricing info for Stripe
   await db

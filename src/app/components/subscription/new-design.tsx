@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Minus,
   Calculator,
+  CheckCircle,
   AlertTriangle,
   Loader2,
   Info,
@@ -25,6 +27,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -67,6 +70,14 @@ interface Subject {
   order_index: number;
 }
 
+interface UserSubjectAccess {
+  hasAccess: boolean;
+  subjectsCount: number;
+  maxSubjects: number;
+  availableSlots: number;
+  selectedSubjects: string[];
+}
+
 interface PlanChangePreview {
   currentPrice: number;
   newPrice: number;
@@ -80,6 +91,7 @@ interface PlanChangePreview {
 interface SubscriptionChangeProps {
   currentSubjects: string[];
   allSubjects: Subject[];
+  currentPrice: number;
   onChangeComplete: () => void;
   pendingRemovals?: string[]; // Subjects that are pending removal
 }
@@ -87,6 +99,7 @@ interface SubscriptionChangeProps {
 export default function SubscriptionChange({
   currentSubjects,
   allSubjects,
+  currentPrice,
   onChangeComplete,
   pendingRemovals = [],
 }: SubscriptionChangeProps) {
@@ -97,6 +110,7 @@ export default function SubscriptionChange({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [loadingOverlayMessage, setLoadingOverlayMessage] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     // Update preview when selection changes
@@ -146,6 +160,7 @@ export default function SubscriptionChange({
 
   const handleSubjectToggle = (subjectId: string, checked: boolean) => {
     const isCurrentlySubscribed = currentSubjects.includes(subjectId);
+    const isPendingRemoval = pendingRemovals.includes(subjectId);
 
     if (checked) {
       // User is trying to add a subject
@@ -282,8 +297,8 @@ export default function SubscriptionChange({
         <div className="flex items-center gap-2 text-green-600">
           <Plus className="w-4 h-4" />
           <span className="text-sm">
-            Aggiunta {addedSubjects.length} materi
-            {addedSubjects.length > 1 ? "e" : "a"}
+            Aggiunta {addedSubjects.length} materia
+            {addedSubjects.length > 1 ? "e" : ""}
           </span>
         </div>
       );
@@ -292,8 +307,8 @@ export default function SubscriptionChange({
         <div className="flex items-center gap-2 text-red-600">
           <Minus className="w-4 h-4" />
           <span className="text-sm">
-            Rimozione {removedSubjects.length} materie
-            {removedSubjects.length > 1 ? "e" : "a"}
+            Rimozione {removedSubjects.length} materia
+            {removedSubjects.length > 1 ? "e" : ""}
           </span>
         </div>
       );
@@ -305,6 +320,16 @@ export default function SubscriptionChange({
   const hasChanges =
     selectedSubjects.length !== currentSubjects.length ||
     !selectedSubjects.every((id) => currentSubjects.includes(id));
+
+  // Check if there are simultaneous changes (should not happen with new logic, but good to have)
+  const addedSubjects = selectedSubjects.filter(
+    (id) => !currentSubjects.includes(id)
+  );
+  const removedSubjects = currentSubjects.filter(
+    (id) => !selectedSubjects.includes(id)
+  );
+  const hasSimultaneousChanges =
+    addedSubjects.length > 0 && removedSubjects.length > 0;
 
   return (
     <Card>
@@ -363,48 +388,66 @@ export default function SubscriptionChange({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {currentUserSubjects.map((subject) => {
                     const isSelected = selectedSubjects.includes(subject.id);
+                    const isPendingRemoval = pendingRemovals.includes(
+                      subject.id
+                    );
 
                     return (
                       <div
                         key={subject.id}
                         className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+                          isPendingRemoval
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        } ${
                           isSelected
                             ? "border-transparent shadow-lg scale-[1.02]"
                             : "border-border hover:border-muted-foreground/30 hover:scale-[1.01]"
                         }`}
                         onClick={(e) => {
-                          e.preventDefault();
-                          handleSubjectToggle(subject.id, !isSelected);
+                          if (!isPendingRemoval) {
+                            e.preventDefault();
+                            handleSubjectToggle(subject.id, !isSelected);
+                          }
                         }}
                         style={
                           {
                             "--subject-color": subject.color,
-                            backgroundColor: isSelected
-                              ? `${subject.color}08`
-                              : "transparent",
-                            boxShadow: isSelected
-                              ? `0 8px 32px ${subject.color}20`
-                              : "none",
+                            backgroundColor:
+                              isSelected && !isPendingRemoval
+                                ? `${subject.color}08`
+                                : isPendingRemoval
+                                ? "#f97316" + "08"
+                                : "transparent",
+                            boxShadow:
+                              isSelected && !isPendingRemoval
+                                ? `0 8px 32px ${subject.color}20`
+                                : "none",
                           } as React.CSSProperties
                         }
                       >
                         {/* Accent border for selected state */}
-                        {isSelected && (
+                        {isSelected && !isPendingRemoval && (
                           <div
                             className="absolute inset-0 rounded-xl border-2 pointer-events-none"
                             style={{ borderColor: subject.color }}
                           />
                         )}
+                        {isPendingRemoval && (
+                          <div className="absolute inset-0 rounded-xl border-2 pointer-events-none border-orange-500" />
+                        )}
 
                         {/* Top accent bar */}
                         <div
                           className={`absolute top-0 left-0 right-0 h-1 transition-all duration-300 ${
-                            isSelected
+                            isSelected || isPendingRemoval
                               ? "opacity-100"
                               : "opacity-0 group-hover:opacity-60"
                           }`}
                           style={{
-                            backgroundColor: subject.color,
+                            backgroundColor: isPendingRemoval
+                              ? "#f97316"
+                              : subject.color,
                           }}
                         />
 
@@ -413,7 +456,11 @@ export default function SubscriptionChange({
                             <div className="flex-1 space-y-2">
                               <div className="flex items-center gap-2">
                                 <h3
-                                  className={`font-semibold transition-colors ${"md:text-foreground text-[var(--subject-color)] group-hover:text-[var(--subject-color)]"}`}
+                                  className={`font-semibold transition-colors ${
+                                    isPendingRemoval
+                                      ? "text-orange-600"
+                                      : "md:text-foreground text-[var(--subject-color)] group-hover:text-[var(--subject-color)]"
+                                  }`}
                                 >
                                   {subject.name}
                                 </h3>
@@ -448,6 +495,11 @@ export default function SubscriptionChange({
                                     Rimozione
                                   </Badge>
                                 )}
+                                {isPendingRemoval && (
+                                  <Badge className="text-xs bg-orange-500 text-white">
+                                    In Sospeso
+                                  </Badge>
+                                )}
                               </div>
                             </div>
 
@@ -457,14 +509,20 @@ export default function SubscriptionChange({
                                 className={`w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
                                   isSelected
                                     ? "shadow-md"
+                                    : isPendingRemoval
+                                    ? "border-2 border-orange-500"
                                     : "border-2 border-muted-foreground/30 group-hover:border-[var(--subject-color)]"
                                 }`}
                                 style={{
                                   backgroundColor: isSelected
-                                    ? subject.color
+                                    ? isPendingRemoval
+                                      ? "#f97316"
+                                      : subject.color
                                     : "transparent",
                                   borderColor: isSelected
-                                    ? subject.color
+                                    ? isPendingRemoval
+                                      ? "#f97316"
+                                      : subject.color
                                     : undefined,
                                 }}
                               >
@@ -681,7 +739,7 @@ export default function SubscriptionChange({
         </div>
 
         {/* Change Preview */}
-        {hasChanges && (
+        {hasChanges && !hasSimultaneousChanges && (
           <Card className="border-2">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -805,140 +863,144 @@ export default function SubscriptionChange({
         )}
 
         {/* Action Buttons */}
-        {hasChanges && selectedSubjects.length > 0 && (
-          <div className="flex gap-3">
-            <Button
-              onClick={() => setSelectedSubjects(currentSubjects)}
-              variant="outline"
-              className="flex-1"
-            >
-              Ripristina
-            </Button>
+        {hasChanges &&
+          selectedSubjects.length > 0 &&
+          !hasSimultaneousChanges && (
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setSelectedSubjects(currentSubjects)}
+                variant="outline"
+                className="flex-1"
+              >
+                Ripristina
+              </Button>
 
-            <AlertDialog
-              open={confirmDialogOpen}
-              onOpenChange={setConfirmDialogOpen}
-            >
-              <AlertDialogTrigger asChild>
-                <Button
-                  className="flex-1"
-                  disabled={!preview || previewLoading}
-                >
-                  {preview?.isUpgrade
-                    ? "Aggiorna e Addebita Ora"
-                    : "Passa a un piano inferiore"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="max-w-md">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
-                    {preview?.isUpgrade ? (
-                      <>
-                        <CreditCard className="w-5 h-5 text-green-600" />
-                        Conferma Aggiornamento
-                      </>
-                    ) : (
-                      <>
-                        <Minus className="w-5 h-5 text-orange-600" />
-                        Conferma Modifica
-                      </>
-                    )}
-                  </AlertDialogTitle>
-                </AlertDialogHeader>
-
-                <div className="space-y-4">
-                  {/* Change Summary */}
-                  <div className="bg-muted p-4 rounded-lg space-y-3">
-                    <div className="flex items-center gap-2">
+              <AlertDialog
+                open={confirmDialogOpen}
+                onOpenChange={setConfirmDialogOpen}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    className="flex-1"
+                    disabled={!preview || previewLoading}
+                  >
+                    {preview?.isUpgrade
+                      ? "Aggiorna e Addebita Ora"
+                      : "Passa a un piano inferiore"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-md">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
                       {preview?.isUpgrade ? (
-                        <Plus className="w-4 h-4 text-green-600" />
+                        <>
+                          <CreditCard className="w-5 h-5 text-green-600" />
+                          Conferma Aggiornamento
+                        </>
                       ) : (
-                        <Minus className="w-4 h-4 text-orange-600" />
+                        <>
+                          <Minus className="w-5 h-5 text-orange-600" />
+                          Conferma Modifica
+                        </>
                       )}
-                      <span className="font-medium">
-                        {preview?.isUpgrade
-                          ? "Passa a un piano superiore"
-                          : "Passa a un piano inferiore"}
-                      </span>
+                    </AlertDialogTitle>
+                  </AlertDialogHeader>
+
+                  <div className="space-y-4">
+                    {/* Change Summary */}
+                    <div className="bg-muted p-4 rounded-lg space-y-3">
+                      <div className="flex items-center gap-2">
+                        {preview?.isUpgrade ? (
+                          <Plus className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Minus className="w-4 h-4 text-orange-600" />
+                        )}
+                        <span className="font-medium">
+                          {preview?.isUpgrade
+                            ? "Passa a un piano superiore"
+                            : "Passa a un piano inferiore"}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Prezzo attuale:</span>
+                          <span>€{preview?.currentPrice.toFixed(2)}/mese</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Nuovo prezzo:</span>
+                          <span className="font-medium">
+                            €{preview?.newPrice.toFixed(2)}/mese
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Materie selezionate:</span>
+                          <span className="font-medium">
+                            {selectedSubjects.length}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Prezzo attuale:</span>
-                        <span>€{preview?.currentPrice.toFixed(2)}/mese</span>
+                    {/* Immediate Action Info */}
+                    {preview?.isUpgrade ? (
+                      <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <CreditCard className="w-4 h-4 text-green-600 mt-0.5" />
+                          <div className="space-y-1">
+                            <div className="font-medium text-green-800">
+                              Addebito Immediato
+                            </div>
+                            <div className="text-sm text-green-700">
+                              Verrai addebitato di €
+                              {Math.abs(preview?.prorationAmount || 0).toFixed(
+                                2
+                              )}{" "}
+                              per il periodo di fatturazione rimanente.
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Nuovo prezzo:</span>
-                        <span className="font-medium">
-                          €{preview?.newPrice.toFixed(2)}/mese
-                        </span>
+                    ) : (
+                      <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <Calendar className="w-4 h-4 text-orange-600 mt-0.5" />
+                          <div className="space-y-1">
+                            <div className="font-medium text-orange-800">
+                              Acesso alla materia
+                            </div>
+                            <div className="text-sm text-orange-700">
+                              Avrai comunque accesso alla materia fino alla fine
+                              del periodo attuale per nessun costo aggiuntivo.
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Materie selezionate:</span>
-                        <span className="font-medium">
-                          {selectedSubjects.length}
-                        </span>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Immediate Action Info */}
-                  {preview?.isUpgrade ? (
-                    <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <CreditCard className="w-4 h-4 text-green-600 mt-0.5" />
-                        <div className="space-y-1">
-                          <div className="font-medium text-green-800">
-                            Addebito Immediato
-                          </div>
-                          <div className="text-sm text-green-700">
-                            Verrai addebitato di €
-                            {Math.abs(preview?.prorationAmount || 0).toFixed(2)}{" "}
-                            per il periodo di fatturazione rimanente.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <Calendar className="w-4 h-4 text-orange-600 mt-0.5" />
-                        <div className="space-y-1">
-                          <div className="font-medium text-orange-800">
-                            Acesso alla materia
-                          </div>
-                          <div className="text-sm text-orange-700">
-                            Avrai comunque accesso alla materia fino alla fine
-                            del periodo attuale per nessun costo aggiuntivo.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annulla</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handlePlanChange}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Elaborazione...
-                      </>
-                    ) : preview?.isUpgrade ? (
-                      "Conferma e Addebita Ora"
-                    ) : (
-                      "Conferma Modifica"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        )}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annulla</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handlePlanChange}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Elaborazione...
+                        </>
+                      ) : preview?.isUpgrade ? (
+                        "Conferma e Addebita Ora"
+                      ) : (
+                        "Conferma Modifica"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
       </CardContent>
 
       {/* Loading Overlay */}
