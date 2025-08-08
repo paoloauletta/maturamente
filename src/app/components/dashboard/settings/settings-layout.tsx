@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, LogOut } from "lucide-react";
+import { Pencil, Trash2, LogOut, XCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,32 @@ export default function SettingsClient({
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState<string>(picture || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subActionLoading, setSubActionLoading] = useState(false);
+  const [subscription, setSubscription] = useState<{
+    isActive: boolean;
+    willCancelAtPeriodEnd: boolean;
+    currentPeriodEnd: string | null;
+  } | null>(null);
+
+  // Fetch subscription status for Danger Zone actions
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const res = await fetch("/api/user/subscription-status");
+      if (!res.ok) return;
+      const data = await res.json();
+      setSubscription({
+        isActive: !!data?.isActive,
+        willCancelAtPeriodEnd: !!data?.willCancelAtPeriodEnd,
+        currentPeriodEnd: data?.currentPeriodEnd ?? null,
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchSubscriptionStatus();
+  }, []);
 
   const handleProfileUpdate = async () => {
     try {
@@ -124,6 +150,44 @@ export default function SettingsClient({
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      setSubActionLoading(true);
+      const response = await fetch("/api/stripe/cancel-subscription", {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Impossibile cancellare abbonamento");
+      toast.success(
+        "L'abbonamento verrà cancellato alla fine del periodo di fatturazione"
+      );
+      setTimeout(() => {
+        fetchSubscriptionStatus();
+      }, 1000);
+    } catch (error) {
+      toast.error("Impossibile cancellare abbonamento");
+    } finally {
+      setSubActionLoading(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    try {
+      setSubActionLoading(true);
+      const response = await fetch("/api/stripe/reactivate-subscription", {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Impossibile riattivare abbonamento");
+      toast.success("Abbonamento riattivato con successo");
+      setTimeout(() => {
+        fetchSubscriptionStatus();
+      }, 1000);
+    } catch (error) {
+      toast.error("Impossibile riattivare abbonamento");
+    } finally {
+      setSubActionLoading(false);
     }
   };
 
@@ -237,6 +301,63 @@ export default function SettingsClient({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 px-4 sm:px-6 md:pb-6">
+          {/* Cancel / Reactivate Subscription */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="font-medium">Gestione Abbonamento</p>
+              <p className="text-sm text-muted-foreground">
+                Cancella o riattiva il tuo abbonamento.
+              </p>
+            </div>
+
+            {subscription &&
+            subscription.isActive &&
+            !subscription.willCancelAtPeriodEnd ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="sm:w-auto w-full mt-2 sm:mt-0 gap-2"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancella Abbonamento
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancella Abbonamento</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Avrai ancora accesso alle materie selezionate nel tuo
+                      abbonamento fino alla fine del periodo attuale.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Mantieni</AlertDialogCancel>
+                    <Button
+                      onClick={handleCancelSubscription}
+                      variant="destructive"
+                      disabled={subActionLoading}
+                      className="bg-red-600 text-white"
+                    >
+                      {subActionLoading
+                        ? "Annullamento..."
+                        : "Conferma Cancellazione"}
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : subscription && subscription.willCancelAtPeriodEnd ? (
+              <Button
+                onClick={handleReactivateSubscription}
+                disabled={subActionLoading}
+                className="sm:w-auto w-full mt-2 sm:mt-0 gap-2 text-white"
+              >
+                <CheckCircle className="h-4 w-4" />
+                {subActionLoading ? "Riattivazione..." : "Riattiva Abbonamento"}
+              </Button>
+            ) : null}
+          </div>
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <p className="font-medium">Elimina Account</p>
@@ -269,7 +390,7 @@ export default function SettingsClient({
                   <AlertDialogCancel>Annulla</AlertDialogCancel>
                   <Button
                     variant="destructive"
-                    className="text-white cursor-pointer"
+                    className="text-white cursor-pointer bg-red-600"
                     onClick={deleteAccount}
                     disabled={isSubmitting}
                   >

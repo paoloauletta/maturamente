@@ -10,9 +10,12 @@ export async function GET(request: NextRequest) {
         name: subjectsTable.name,
         description: subjectsTable.description,
         slug: subjectsTable.slug,
+        color: subjectsTable.color,
+        maturita: subjectsTable.maturita,
+        order_index: subjectsTable.order_index,
       })
       .from(subjectsTable)
-      .orderBy(subjectsTable.name);
+      .orderBy(subjectsTable.order_index);
 
     return NextResponse.json(subjects);
   } catch (error) {

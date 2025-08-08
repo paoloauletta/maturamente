@@ -175,10 +175,6 @@ const UserAvatarDropdown = () => {
     router.push("/dashboard/settings");
   };
 
-  const handleSubscribeClick = () => {
-    router.push("/pricing");
-  };
-
   // Get first letter of name or email for avatar fallback
   const getAvatarFallback = () => {
     if (user?.name) return user.name[0];
@@ -187,46 +183,22 @@ const UserAvatarDropdown = () => {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Avatar className="h-10 w-10 cursor-pointer ring-1 ring-foreground/10">
-          {user?.image ? (
-            <AvatarImage
-              src={user.image}
-              alt={user?.name || user?.email || "User"}
-              onError={(e) => {
-                // On error, hide the image and let the fallback show
-                e.currentTarget.style.display = "none";
-              }}
-            />
-          ) : null}
-          <AvatarFallback className="bg-primary">
-            {getAvatarFallback()}
-          </AvatarFallback>
-        </Avatar>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={handleSettingsClick}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Impostazioni</span>
-        </DropdownMenuItem>
-
-        {/* Only show subscribe option if user doesn't have an active subscription */}
-        {!isLoading && !hasSubscription && (
-          <DropdownMenuItem onClick={handleSubscribeClick}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            <span>Iscriviti subito</span>
-          </DropdownMenuItem>
-        )}
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem onClick={() => signOut()}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Esci</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Avatar className="h-10 w-10 cursor-pointer ring-1 ring-foreground/10">
+      {user?.image ? (
+        <AvatarImage
+          src={user.image}
+          alt={user?.name || user?.email || "User"}
+          onError={(e) => {
+            // On error, hide the image and let the fallback show
+            e.currentTarget.style.display = "none";
+          }}
+          onClick={handleSettingsClick}
+        />
+      ) : null}
+      <AvatarFallback className="bg-primary">
+        {getAvatarFallback()}
+      </AvatarFallback>
+    </Avatar>
   );
 };
 

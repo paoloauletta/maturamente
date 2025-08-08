@@ -310,9 +310,9 @@ export default function SubscriptionManagement({
 
     if (subscription.isActive && !subscription.willCancelAtPeriodEnd) {
       return (
-        <Badge className="bg-green-500">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          Attivo
+        <Badge className="bg-green-500 text-white">
+          <CheckCircle className="w-3.5 h-3.5" />
+          <span className="text-sm text-white">Attivo</span>
         </Badge>
       );
     }
@@ -428,7 +428,7 @@ export default function SubscriptionManagement({
             Il tuo piano di abbonamento e gestione fatturazione
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 mt-2">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Prezzo</p>
@@ -440,12 +440,12 @@ export default function SubscriptionManagement({
               <p className="text-sm text-muted-foreground">Materie</p>
               <p className="font-medium text-lg">
                 {subscription.subjectCount} materie
+                {getSubjectsToBeRemoved().length > 0 && (
+                  <span className="text-red-500">
+                    {" - "}({getSubjectsToBeRemoved().length} in rimozione)
+                  </span>
+                )}
               </p>
-              {getSubjectsToBeRemoved().length > 0 && (
-                <p className="text-xs text-orange-600 mt-1">
-                  {getSubjectsToBeRemoved().length} in rimozione
-                </p>
-              )}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
@@ -462,7 +462,7 @@ export default function SubscriptionManagement({
             <Button
               onClick={openBillingPortal}
               disabled={actionLoading}
-              className="w-full gap-2"
+              className="w-full gap-2 cursor-pointer"
               variant="outline"
             >
               <ExternalLink className="w-4 h-4" />
@@ -476,110 +476,7 @@ export default function SubscriptionManagement({
       </Card>
 
       {/* Pending Changes Section */}
-      {pendingChanges.length > 0 && (
-        <Card className="border-red-200 bg-red-50/30 dark:bg-red-950/20 dark:border-red-800">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Minus className="w-5 h-5 text-red-600" />
-                Riduzione Piano in Sospeso
-              </span>
-              <Badge variant="outline" className="border-red-500 text-red-600">
-                {pendingChanges.length} modifica
-                {pendingChanges.length > 1 ? "e" : ""}
-              </Badge>
-            </CardTitle>
-            <CardDescription>
-              Riduzioni programmate per la prossima fatturazione
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {pendingChanges.map((change) => (
-              <Card key={change.id} className="bg-background">
-                <CardContent className="p-4">
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-red-500 text-white">
-                            Riduzione Piano
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Effettivo: {formatDate(change.scheduled_date)}
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleUndoPendingChange(change.id)}
-                        disabled={actionLoading}
-                        className="w-full sm:w-auto"
-                      >
-                        Annulla
-                      </Button>
-                    </div>
-
-                    {/* Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium">Nuovo Prezzo</div>
-                        <div className="text-lg font-bold text-red-600">
-                          €{parseFloat(change.new_price).toFixed(2)}/mese
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium">
-                          Materie Rimanenti
-                        </div>
-                        <div className="text-lg font-bold">
-                          {change.new_subject_count} materie
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Subject Changes */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-red-600">
-                        Materie da rimuovere:
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {getSubjectsToBeRemoved().map((subjectId) => {
-                          const subject = subjects.find(
-                            (s) => s.id === subjectId
-                          );
-                          return subject ? (
-                            <Badge
-                              key={subjectId}
-                              variant="outline"
-                              className="text-xs border-red-500 text-red-600"
-                            >
-                              {subject.name}
-                            </Badge>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* Info Note */}
-            <div className="bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-red-800 dark:text-red-200">
-                  <strong>Importante:</strong> La riduzione del piano verrà
-                  applicata automaticamente alla prossima data di fatturazione.
-                  Continuerai ad avere accesso alle materie fino a quella data.
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Pending changes are now managed inline within subject cards (Annulla Rimozione) */}
 
       {/* Subscription Change Section */}
       {subscription.isActive &&
@@ -599,67 +496,7 @@ export default function SubscriptionManagement({
           />
         )}
 
-      {/* Subscription Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            Azioni Abbonamento
-          </CardTitle>
-          <CardDescription>
-            Gestisci lo stato del tuo abbonamento
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {subscription.isActive && !subscription.willCancelAtPeriodEnd ? (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full gap-2">
-                  <XCircle className="w-4 h-4" />
-                  Cancella Abbonamento
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Cancella Abbonamento</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Sei sicuro di voler cancellare il tuo abbonamento? Perderai
-                    l'accesso a tutte le funzionalità premium alla fine del tuo
-                    periodo di fatturazione attuale (
-                    {formatDate(subscription.currentPeriodEnd)}).
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Mantieni Abbonamento</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleCancelSubscription}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Cancella Abbonamento
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : subscription.willCancelAtPeriodEnd ? (
-            <Button
-              onClick={handleReactivateSubscription}
-              disabled={actionLoading}
-              className="w-full gap-2"
-            >
-              <CheckCircle className="w-4 h-4" />
-              {actionLoading ? "Riattivazione..." : "Riattiva Abbonamento"}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => router.push("/pricing")}
-              className="w-full gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Abbonati di Nuovo
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+      {/* Subscription Actions moved to Danger Zone in settings-layout */}
 
       {/* Loading Overlay */}
       <LoadingOverlay

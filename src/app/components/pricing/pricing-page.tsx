@@ -407,7 +407,7 @@ export function PricingPage({ subjects }: PricingPageProps) {
                   <CardFooter className="pt-4">
                     {status === "unauthenticated" ? (
                       <Button
-                        className="w-full h-12 text-base font-medium"
+                        className="w-full h-12 text-base font-medium text-white cursor-pointer"
                         onClick={handleGoogleLogin}
                       >
                         Accedi per Continuare

@@ -19,7 +19,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-// Note: Using regular input with type="checkbox" since Checkbox component might not be available
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,41 +30,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { SubjectCard, SubjectUI } from "./subject-card";
+import { LoadingOverlay } from "./loading-overlay";
 
-// Loading Overlay Component
-const LoadingOverlay = ({
-  isVisible,
-  message,
-}: {
-  isVisible: boolean;
-  message: string;
-}) => {
-  if (!isVisible) return null;
+// moved to components/loading-overlay
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-background border rounded-lg p-6 shadow-lg max-w-sm w-full mx-4">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <div className="text-center">
-            <h3 className="font-semibold text-lg">Elaborazione in corso</h3>
-            <p className="text-sm text-muted-foreground mt-1">{message}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface Subject {
-  id: string;
-  name: string;
-  description: string;
-  slug: string;
-  color: string;
-  maturita?: boolean;
-  order_index: number;
-}
+type Subject = SubjectUI;
 
 interface PlanChangePreview {
   currentPrice: number;
@@ -97,6 +67,8 @@ export default function SubscriptionChange({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [loadingOverlayMessage, setLoadingOverlayMessage] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [nextPeriodStart, setNextPeriodStart] = useState<string | null>(null);
 
   useEffect(() => {
     // Update preview when selection changes
@@ -107,6 +79,32 @@ export default function SubscriptionChange({
       fetchPreview();
     }
   }, [selectedSubjects, currentSubjects]);
+
+  useEffect(() => {
+    // Fetch subscription status to compute next period start date for downgrades
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("/api/user/subscription-status");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.currentPeriodEnd) {
+          const dateObj = new Date(data.currentPeriodEnd);
+          if (!isNaN(dateObj.getTime())) {
+            setNextPeriodStart(
+              new Intl.DateTimeFormat("it-IT", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }).format(dateObj)
+            );
+          }
+        }
+      } catch (e) {
+        // ignore silently
+      }
+    };
+    fetchStatus();
+  }, []);
 
   const fetchPreview = async () => {
     if (
@@ -149,20 +147,7 @@ export default function SubscriptionChange({
 
     if (checked) {
       // User is trying to add a subject
-      if (isCurrentlySubscribed) {
-        // This is a currently subscribed subject, so this would be a downgrade (removing it)
-        // Check if there are any other currently subscribed subjects being removed
-        const otherRemovedCurrentSubjects = currentSubjects.filter(
-          (id) => id !== subjectId && !selectedSubjects.includes(id)
-        );
-
-        if (otherRemovedCurrentSubjects.length > 0) {
-          toast.error(
-            "Non puoi aggiungere e rimuovere materie già sottoscritte contemporaneamente. Completa prima la rimozione delle materie attuali selezionate."
-          );
-          return;
-        }
-      } else {
+      if (!isCurrentlySubscribed) {
         // This is a new subject, so this would be an upgrade (adding it)
         // Check if there are any currently subscribed subjects being removed
         const removedCurrentSubjects = currentSubjects.filter(
@@ -209,6 +194,32 @@ export default function SubscriptionChange({
         // This should always be allowed
       }
       setSelectedSubjects((prev) => prev.filter((id) => id !== subjectId));
+    }
+  };
+
+  const handleUndoPendingRemoval = async (subjectId: string) => {
+    try {
+      setActionLoading(true);
+      setLoadingOverlayMessage("Annullamento rimozione in corso...");
+
+      const res = await fetch("/api/stripe/modify-pending-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subjectId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Operazione non riuscita");
+
+      toast.success(data.message || "Rimozione annullata");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } catch (e) {
+      console.error(e);
+      toast.error("Impossibile annullare la rimozione");
+      setActionLoading(false);
+      setLoadingOverlayMessage("");
     }
   };
 
@@ -292,7 +303,7 @@ export default function SubscriptionChange({
         <div className="flex items-center gap-2 text-red-600">
           <Minus className="w-4 h-4" />
           <span className="text-sm">
-            Rimozione {removedSubjects.length} materie
+            Rimozione {removedSubjects.length} materi
             {removedSubjects.length > 1 ? "e" : "a"}
           </span>
         </div>
@@ -321,14 +332,16 @@ export default function SubscriptionChange({
       <CardContent className="space-y-6">
         {/* Warning for pending removals */}
         {pendingRemovals.length > 0 && (
-          <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+          <div className="bg-red-500/5 border border-red-500/20 p-4 rounded-lg">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
               <div className="space-y-1">
-                <div className="font-medium text-orange-800">
-                  Modifiche in Sospeso
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                  <p className="font-medium text-red-800 dark:text-red-600">
+                    Modifiche in Sospeso
+                  </p>
                 </div>
-                <div className="text-sm text-orange-700">
+                <div className="text-sm text-red-700">
                   Hai modifiche al tuo abbonamento che saranno applicate alla
                   prossima fatturazione. Le materie in sospeso non possono
                   essere modificate fino a quando le modifiche non saranno
@@ -361,123 +374,15 @@ export default function SubscriptionChange({
                   Le Tue Materie
                 </h5>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {currentUserSubjects.map((subject) => {
-                    const isSelected = selectedSubjects.includes(subject.id);
-
-                    return (
-                      <div
-                        key={subject.id}
-                        className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                          isSelected
-                            ? "border-transparent shadow-lg scale-[1.02]"
-                            : "border-border hover:border-muted-foreground/30 hover:scale-[1.01]"
-                        }`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleSubjectToggle(subject.id, !isSelected);
-                        }}
-                        style={
-                          {
-                            "--subject-color": subject.color,
-                            backgroundColor: isSelected
-                              ? `${subject.color}08`
-                              : "transparent",
-                            boxShadow: isSelected
-                              ? `0 8px 32px ${subject.color}20`
-                              : "none",
-                          } as React.CSSProperties
-                        }
-                      >
-                        {/* Accent border for selected state */}
-                        {isSelected && (
-                          <div
-                            className="absolute inset-0 rounded-xl border-2 pointer-events-none"
-                            style={{ borderColor: subject.color }}
-                          />
-                        )}
-
-                        {/* Top accent bar */}
-                        <div
-                          className={`absolute top-0 left-0 right-0 h-1 transition-all duration-300 ${
-                            isSelected
-                              ? "opacity-100"
-                              : "opacity-0 group-hover:opacity-60"
-                          }`}
-                          style={{
-                            backgroundColor: subject.color,
-                          }}
-                        />
-
-                        <div className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <h3
-                                  className={`font-semibold transition-colors ${"md:text-foreground text-[var(--subject-color)] group-hover:text-[var(--subject-color)]"}`}
-                                >
-                                  {subject.name}
-                                </h3>
-                                {subject.maturita && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs px-2 py-0.5"
-                                    style={{
-                                      backgroundColor: `${subject.color}15`,
-                                      color: subject.color,
-                                      border: `1px solid ${subject.color}30`,
-                                    }}
-                                  >
-                                    Maturità
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                {subject.description}
-                              </p>
-
-                              {/* Status badges */}
-                              <div className="flex flex-wrap gap-1">
-                                <Badge variant="outline" className="text-xs">
-                                  Attuale
-                                </Badge>
-                                {!isSelected && (
-                                  <Badge
-                                    variant="destructive"
-                                    className="text-xs"
-                                  >
-                                    Rimozione
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Check icon */}
-                            <div className="ml-4 flex-shrink-0">
-                              <div
-                                className={`w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
-                                  isSelected
-                                    ? "shadow-md"
-                                    : "border-2 border-muted-foreground/30 group-hover:border-[var(--subject-color)]"
-                                }`}
-                                style={{
-                                  backgroundColor: isSelected
-                                    ? subject.color
-                                    : "transparent",
-                                  borderColor: isSelected
-                                    ? subject.color
-                                    : undefined,
-                                }}
-                              >
-                                {isSelected && (
-                                  <Check className="h-3.5 w-3.5 text-white" />
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {currentUserSubjects.map((subject) => (
+                    <SubjectCard
+                      key={subject.id}
+                      subject={subject}
+                      isSelected={selectedSubjects.includes(subject.id)}
+                      state="current"
+                      onToggle={handleSubjectToggle}
+                    />
+                  ))}
                 </div>
               </div>
             );
@@ -493,58 +398,86 @@ export default function SubscriptionChange({
 
             return (
               <div className="space-y-3">
-                <h5 className="text-xs font-medium text-orange-600 uppercase tracking-wide">
-                  Modifiche in Sospeso
-                </h5>
+                <div className="flex items-center justify-between">
+                  <h5 className="text-xs font-medium text-red-600 uppercase tracking-wide">
+                    Modifiche in Sospeso
+                  </h5>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        Annulla tutte le rimozioni
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="max-w-md">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Ripristina tutte le materie
+                        </AlertDialogTitle>
+                      </AlertDialogHeader>
+                      <div className="text-sm text-muted-foreground">
+                        Questa azione annullerà tutte le rimozioni programmate.
+                        L’abbonamento verrà aggiornato ora e potrebbero esserci
+                        addebiti proporzionali.
+                      </div>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={async () => {
+                            try {
+                              setActionLoading(true);
+                              setLoadingOverlayMessage(
+                                "Ripristino materie in corso..."
+                              );
+                              const restoreSubjectIds = pendingSubjects.map(
+                                (s) => s.id
+                              );
+                              const res = await fetch(
+                                "/api/stripe/modify-pending-change",
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ restoreSubjectIds }),
+                                }
+                              );
+                              const data = await res.json();
+                              if (!res.ok)
+                                throw new Error(
+                                  data.error || "Operazione non riuscita"
+                                );
+                              toast.success(
+                                "Tutte le rimozioni sono state annullate"
+                              );
+                              setTimeout(() => {
+                                window.location.reload();
+                              }, 1200);
+                            } catch (err) {
+                              console.error(err);
+                              toast.error(
+                                "Impossibile annullare tutte le rimozioni"
+                              );
+                              setActionLoading(false);
+                              setLoadingOverlayMessage("");
+                            }
+                          }}
+                        >
+                          Continua
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pendingSubjects.map((subject) => (
-                    <div
+                    <SubjectCard
                       key={subject.id}
-                      className="group relative overflow-hidden rounded-xl border-2 border-orange-500 opacity-50 cursor-not-allowed"
-                      style={
-                        {
-                          "--subject-color": subject.color,
-                          backgroundColor: `${subject.color}08`,
-                          boxShadow: `0 8px 32px ${subject.color}20`,
-                        } as React.CSSProperties
-                      }
-                    >
-                      {/* Orange border and top bar */}
-                      <div className="absolute inset-0 rounded-xl border-2 pointer-events-none border-orange-500" />
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-orange-500" />
-
-                      <div className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-orange-600">
-                                {subject.name}
-                              </h3>
-                              {subject.maturita && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-xs px-2 py-0.5 bg-orange-100 text-orange-600 border-orange-300"
-                                >
-                                  Maturità
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              {subject.description}
-                            </p>
-                            <Badge className="text-xs bg-orange-500 text-white">
-                              In Sospeso
-                            </Badge>
-                          </div>
-
-                          <div className="ml-4 flex-shrink-0">
-                            <div className="w-6 h-6 rounded-full border-2 border-orange-500 bg-orange-500 flex items-center justify-center">
-                              <Check className="h-3.5 w-3.5 text-white" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      subject={subject}
+                      isSelected
+                      state="pending-removal"
+                      disabled
+                      onUndoPendingRemoval={handleUndoPendingRemoval}
+                    />
                   ))}
                 </div>
               </div>
@@ -569,111 +502,15 @@ export default function SubscriptionChange({
                   Altre Materie Disponibili
                 </h5>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {availableSubjects.map((subject) => {
-                    const isSelected = selectedSubjects.includes(subject.id);
-
-                    return (
-                      <div
-                        key={subject.id}
-                        className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                          isSelected
-                            ? "border-transparent shadow-lg scale-[1.02]"
-                            : "border-border hover:border-muted-foreground/30 hover:scale-[1.01]"
-                        }`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleSubjectToggle(subject.id, !isSelected);
-                        }}
-                        style={
-                          {
-                            "--subject-color": subject.color,
-                            backgroundColor: isSelected
-                              ? `${subject.color}08`
-                              : "transparent",
-                            boxShadow: isSelected
-                              ? `0 8px 32px ${subject.color}20`
-                              : "none",
-                          } as React.CSSProperties
-                        }
-                      >
-                        {/* Accent border for selected state */}
-                        {isSelected && (
-                          <div
-                            className="absolute inset-0 rounded-xl border-2 pointer-events-none"
-                            style={{ borderColor: subject.color }}
-                          />
-                        )}
-
-                        {/* Top accent bar */}
-                        <div
-                          className={`absolute top-0 left-0 right-0 h-1 transition-all duration-300 ${
-                            isSelected
-                              ? "opacity-100"
-                              : "opacity-0 group-hover:opacity-60"
-                          }`}
-                          style={{ backgroundColor: subject.color }}
-                        />
-
-                        <div className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold md:text-foreground text-[var(--subject-color)] group-hover:text-[var(--subject-color)] transition-colors">
-                                  {subject.name}
-                                </h3>
-                                {subject.maturita && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="text-xs px-2 py-0.5"
-                                    style={{
-                                      backgroundColor: `${subject.color}15`,
-                                      color: subject.color,
-                                      border: `1px solid ${subject.color}30`,
-                                    }}
-                                  >
-                                    Maturità
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                {subject.description}
-                              </p>
-
-                              {/* Status badge */}
-                              {isSelected && (
-                                <Badge className="text-xs bg-green-500 text-white">
-                                  Aggiunta
-                                </Badge>
-                              )}
-                            </div>
-
-                            {/* Check icon */}
-                            <div className="ml-4 flex-shrink-0">
-                              <div
-                                className={`w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
-                                  isSelected
-                                    ? "shadow-md"
-                                    : "border-2 border-muted-foreground/30 group-hover:border-[var(--subject-color)]"
-                                }`}
-                                style={{
-                                  backgroundColor: isSelected
-                                    ? subject.color
-                                    : "transparent",
-                                  borderColor: isSelected
-                                    ? subject.color
-                                    : undefined,
-                                }}
-                              >
-                                {isSelected && (
-                                  <Check className="h-3.5 w-3.5 text-white" />
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {availableSubjects.map((subject) => (
+                    <SubjectCard
+                      key={subject.id}
+                      subject={subject}
+                      isSelected={selectedSubjects.includes(subject.id)}
+                      state="available"
+                      onToggle={handleSubjectToggle}
+                    />
+                  ))}
                 </div>
               </div>
             );
@@ -718,45 +555,21 @@ export default function SubscriptionChange({
 
                 {/* Proration Amount */}
                 {preview.prorationAmount !== 0 && (
-                  <div
-                    className={`rounded-lg p-4 border-2 ${
-                      preview.isUpgrade
-                        ? "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800"
-                        : "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800"
-                    }`}
-                  >
+                  <div className="rounded-lg p-4 border-2 bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div
-                          className={`font-medium ${
-                            preview.isUpgrade
-                              ? "text-red-800 dark:text-red-200"
-                              : "text-green-800 dark:text-green-200"
-                          }`}
-                        >
+                        <div className="font-medium text-green-800 dark:text-green-500">
                           {preview.isUpgrade
                             ? "Addebito Immediato"
                             : "Credito Applicato"}
                         </div>
-                        <div
-                          className={`text-sm ${
-                            preview.isUpgrade
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-green-600 dark:text-green-400"
-                          }`}
-                        >
+                        <div className="text-sm text-green-600">
                           {preview.isUpgrade
                             ? "Per il periodo rimanente di questo mese"
                             : "Applicato alla prossima fattura"}
                         </div>
                       </div>
-                      <div
-                        className={`text-xl font-bold ${
-                          preview.isUpgrade
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-green-600 dark:text-green-400"
-                        }`}
-                      >
+                      <div className="text-xl font-bold text-green-600">
                         {preview.isUpgrade ? "+" : "-"}€
                         {Math.abs(preview.prorationAmount).toFixed(2)}
                       </div>
@@ -778,16 +591,20 @@ export default function SubscriptionChange({
                     <span className="text-sm text-muted-foreground">
                       Effettivo da:
                     </span>
-                    <span className="font-medium">Immediatamente</span>
+                    <span className="font-medium">
+                      {preview.isUpgrade
+                        ? "Immediatamente"
+                        : nextPeriodStart || "Prossimo mese"}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
-                  <span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-blue-500/5 p-3 rounded-lg border border-blue-500/20 text-blue-500">
+                  <Info className="w-4 h-4 flex-shrink-0 text-blue-500" />
+                  <span className="text-blue-500">
                     {preview.isUpgrade
                       ? "Le modifiche saranno applicate immediatamente e verrai addebitato per il periodo rimanente."
-                      : "Le modifiche saranno applicate immediatamente e riceverai un credito per il periodo rimanente."}
+                      : "Le modifiche saranno applicate il prossimo mese e avrai accesso alla materia fino alla fine del periodo attuale."}
                   </span>
                 </div>
               </CardContent>
@@ -821,7 +638,7 @@ export default function SubscriptionChange({
             >
               <AlertDialogTrigger asChild>
                 <Button
-                  className="flex-1"
+                  className="flex-1 text-white"
                   disabled={!preview || previewLoading}
                 >
                   {preview?.isUpgrade
@@ -884,14 +701,13 @@ export default function SubscriptionChange({
 
                   {/* Immediate Action Info */}
                   {preview?.isUpgrade ? (
-                    <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <CreditCard className="w-4 h-4 text-green-600 mt-0.5" />
+                    <div className="bg-green-500/5 border border-green-500/20 p-4 rounded-lg">
+                      <div className="flex items-center gap-2">
                         <div className="space-y-1">
-                          <div className="font-medium text-green-800">
+                          <div className="flex items-center gap-2 font-medium text-green-800 dark:text-green-500">
                             Addebito Immediato
                           </div>
-                          <div className="text-sm text-green-700">
+                          <div className="text-sm text-green-600">
                             Verrai addebitato di €
                             {Math.abs(preview?.prorationAmount || 0).toFixed(2)}{" "}
                             per il periodo di fatturazione rimanente.
@@ -900,17 +716,17 @@ export default function SubscriptionChange({
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <Calendar className="w-4 h-4 text-orange-600 mt-0.5" />
-                        <div className="space-y-1">
-                          <div className="font-medium text-orange-800">
+                    <div className="bg-blue-500/5 border border-blue-500/20 p-4 rounded-lg">
+                      <div className="flex flex-col items-start gap-2">
+                        <div className="space-y-1 flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-blue-400" />
+                          <div className="font-medium text-blue-400">
                             Acesso alla materia
                           </div>
-                          <div className="text-sm text-orange-700">
-                            Avrai comunque accesso alla materia fino alla fine
-                            del periodo attuale per nessun costo aggiuntivo.
-                          </div>
+                        </div>
+                        <div className="text-sm text-blue-500">
+                          Avrai comunque accesso alla materia fino alla fine del
+                          periodo attuale per nessun costo aggiuntivo.
                         </div>
                       </div>
                     </div>
@@ -922,6 +738,7 @@ export default function SubscriptionChange({
                   <AlertDialogAction
                     onClick={handlePlanChange}
                     disabled={loading}
+                    className="cursor-pointer text-white"
                   >
                     {loading ? (
                       <>
