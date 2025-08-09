@@ -315,21 +315,21 @@ export function GeneralNavbar({ variant = "landing" }: NavbarProps) {
                   <ScrollLink
                     href="/"
                     section="top"
-                    className="text-gray-700 dark:text-gray-300 hover:text-primary"
+                    className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary"
                   >
                     Home
                   </ScrollLink>
                   <ScrollLink
                     href="#features"
                     section="features"
-                    className="text-gray-700 dark:text-gray-300 hover:text-primary"
+                    className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary"
                   >
                     Features
                   </ScrollLink>
                   <ScrollLink
                     href="#faq"
                     section="faq"
-                    className="text-gray-700 dark:text-gray-300 hover:text-primary"
+                    className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary"
                   >
                     FAQ
                   </ScrollLink>
@@ -343,8 +343,8 @@ export function GeneralNavbar({ variant = "landing" }: NavbarProps) {
                         key={link.href}
                         href={link.href}
                         className={cn(
-                          "text-gray-700 dark:text-gray-300 hover:text-primary transition-colors",
-                          isActive && "font-bold text-primary"
+                          "text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors",
+                          isActive && "font-bold text-primary dark:text-primary"
                         )}
                       >
                         {link.label}

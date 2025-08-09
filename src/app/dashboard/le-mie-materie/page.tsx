@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 // Loading component for subjects
 function SubjectsLoadingSkeleton() {
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8 space-y-6">
+    <div className="container mx-auto max-w-7xl px-4 py-4 md:py-8">
       <div className="space-y-2">
         <div className="h-8 w-48 bg-muted rounded animate-pulse" />
         <div className="h-5 w-32 bg-muted rounded animate-pulse" />
@@ -64,7 +64,7 @@ export default async function LeMieMateriePage() {
   }
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
+    <div className="container mx-auto max-w-7xl px-4 py-4 md:py-8">
       <Suspense fallback={<SubjectsLoadingSkeleton />}>
         <SubjectsContent />
       </Suspense>

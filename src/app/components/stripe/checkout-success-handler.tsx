@@ -26,6 +26,10 @@ export function CheckoutSuccessHandler() {
     const success = searchParams.get("success");
 
     if (sessionId && success === "true") {
+      // Ensure the subscription checker bypass is active immediately on return
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("bypassSubscriptionRedirect", "true");
+      }
       processCheckout(sessionId);
     }
   }, [searchParams]);
@@ -52,6 +56,10 @@ export function CheckoutSuccessHandler() {
         // Clean up URL after successful processing
         setTimeout(() => {
           router.replace("/dashboard");
+          // After URL cleanup, we can also clear the bypass for future sessions
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem("bypassSubscriptionRedirect");
+          }
         }, 3000);
       } else {
         setStatus("error");
@@ -82,6 +90,11 @@ export function CheckoutSuccessHandler() {
     url.searchParams.delete("session_id");
     url.searchParams.delete("success");
     router.replace(url.pathname);
+
+    // Remove the bypass flag when user dismisses the modal
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("bypassSubscriptionRedirect");
+    }
   };
 
   // Don't render anything if there's no checkout to process

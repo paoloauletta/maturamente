@@ -37,6 +37,7 @@ interface Subject {
   slug: string;
   color: string;
   maturita: boolean;
+  notes_count: number;
 }
 
 interface PricingPageProps {
@@ -295,7 +296,7 @@ export function PricingPage({ subjects }: PricingPageProps) {
         </div>
 
         {/* Main Content */}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Subject Selection - Takes 2 columns on large screens */}
             <div className="lg:col-span-2">
@@ -427,7 +428,7 @@ export function PricingPage({ subjects }: PricingPageProps) {
                         ) : selectedSubjects.length === 0 ? (
                           "Seleziona le materie per continuare"
                         ) : (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-white">
                             Inizia per €{totalPrice.toFixed(2)}/mese
                             <ArrowRight className="w-4 h-4" />
                           </div>

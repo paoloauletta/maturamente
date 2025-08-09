@@ -50,8 +50,6 @@ export const pendingSubscriptionChanges = pgTable(
     new_subject_ids: jsonb("new_subject_ids"), // Array of subject IDs for the new plan
     new_subject_count: integer("new_subject_count"), // Number of subjects in new plan
     new_price: decimal("new_price", { precision: 10, scale: 2 }), // New price for the plan
-    proration_amount: decimal("proration_amount", { precision: 10, scale: 2 }), // Proration charge for immediate upgrades
-    stripe_schedule_id: text("stripe_schedule_id"), // Stripe subscription schedule ID for delayed changes
     scheduled_date: timestamp("scheduled_date"), // When the change should take effect
     status: text("status").notNull().default("pending"), // 'pending', 'applied', 'cancelled', 'failed'
     created_at: timestamp("created_at").notNull().defaultNow(),

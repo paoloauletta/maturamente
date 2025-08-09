@@ -1,7 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, FileText, GraduationCap } from "lucide-react";
+import { getSubjectIcon } from "@/utils/subject-icons";
 
 interface Subject {
   id: string;
@@ -10,6 +11,7 @@ interface Subject {
   slug: string;
   color: string;
   maturita: boolean;
+  notes_count: number;
 }
 
 interface SubjectSelectorProps {
@@ -51,10 +53,10 @@ export function SubjectSelector({
           return (
             <div
               key={subject.id}
-              className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+              className={`group relative overflow-hidden rounded-xl border transition-all duration-300 cursor-pointer ${
                 isSelected
-                  ? "border-transparent shadow-lg scale-[1.02]"
-                  : "border-border hover:border-muted-foreground/30 hover:scale-[1.01]"
+                  ? "border-border shadow-lg scale-[1.01]"
+                  : "border-[var(--subject-color)]/20 hover:border-muted-foreground/30 hover:scale-[1.01]"
               }`}
               onClick={() => handleToggleSubject(subject.id)}
               style={
@@ -66,69 +68,92 @@ export function SubjectSelector({
                 } as React.CSSProperties
               }
             >
-              {/* Accent border for selected state */}
-              {isSelected && (
-                <div
-                  className="absolute inset-0 rounded-xl border-2 pointer-events-none"
-                  style={{ borderColor: subject.color }}
-                />
-              )}
+              {/* subtle top highlight line inspired by pricing */}
+              <hr className="hidden dark:block via-foreground/60 absolute top-0 left-[10%] h-[1px] w-[80%] border-0 bg-linear-to-r from-transparent via-[var(--subject-color)] to-transparent" />
 
-              {/* Top accent bar */}
-              <div
-                className={`absolute top-0 left-0 right-0 h-1 transition-all duration-300 ${
-                  isSelected
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-60"
-                }`}
-                style={{ backgroundColor: subject.color }}
-              />
+              {/* soft color glow background */}
+              <div className="pointer-events-none absolute -top-24 left-1/2 h-32 w-full max-w-[960px] -translate-x-1/2 rounded-[50%] bg-[var(--subject-color)]/20 blur-[72px]" />
 
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
+              <div className="flex flex-col h-full p-4 justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold md:text-foreground text-[var(--subject-color)] group-hover:text-[var(--subject-color)] transition-colors">
+                      {(() => {
+                        const Icon = getSubjectIcon(subject.name);
+                        return Icon ? (
+                          <div className="flex h-7 w-7 items-center justify-center">
+                            <Icon
+                              className="h-4 w-4"
+                              style={{ color: `${subject.color}75` }}
+                            />
+                          </div>
+                        ) : null;
+                      })()}
+                      <h3
+                        className={`font-semibold text-[var(--subject-color)] group-hover:text-[var(--subject-color)] transition-colors ${
+                          isSelected
+                            ? "md:text-[var(--subject-color)]"
+                            : "md:text-foreground"
+                        }`}
+                      >
                         {subject.name}
                       </h3>
-                      {subject.maturita && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs px-2 py-0.5"
-                          style={{
-                            backgroundColor: `${subject.color}15`,
-                            color: subject.color,
-                            border: `1px solid ${subject.color}30`,
-                          }}
-                        >
-                          Maturità
-                        </Badge>
-                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {subject.description}
-                    </p>
+                    <div className="flex-shrink-0">
+                      <div
+                        className={`w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
+                          isSelected
+                            ? "shadow-md"
+                            : "border-2 border-muted-foreground/30 group-hover:border-[var(--subject-color)]"
+                        }`}
+                        style={{
+                          backgroundColor: isSelected
+                            ? subject.color
+                            : "transparent",
+                          borderColor: isSelected ? subject.color : undefined,
+                        }}
+                      >
+                        {isSelected && (
+                          <Check className="h-3.5 w-3.5 text-white" />
+                        )}
+                      </div>
+                    </div>
                   </div>
-
-                  <div className="ml-4 flex-shrink-0">
-                    <div
-                      className={`w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
-                        isSelected
-                          ? "shadow-md"
-                          : "border-2 border-muted-foreground/30 group-hover:border-[var(--subject-color)]"
-                      }`}
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {subject.description}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 pt-3 border-t border-border/80">
+                  <div className="flex items-center justify-center w-9 h-9 rounded-full">
+                    <FileText
+                      className="h-4.5 w-4.5"
+                      style={{ color: `${subject.color}75` }}
+                    />
+                  </div>
+                  <div className="flex justify-between w-full">
+                    <span className="text-sm font-medium">
+                      {subject.notes_count}{" "}
+                      {subject.notes_count === 1 ? "appunto" : "appunti"}
+                      <span className="text-xs text-muted-foreground">
+                        {" "}
+                        {subject.notes_count === 1
+                          ? "disponibile"
+                          : "disponibili"}
+                      </span>
+                    </span>
+                  </div>
+                  {subject.maturita && (
+                    <Badge
+                      className="inline-flex items-center gap-1 text-xs w-fit"
                       style={{
-                        backgroundColor: isSelected
-                          ? subject.color
-                          : "transparent",
-                        borderColor: isSelected ? subject.color : undefined,
+                        backgroundColor: `${subject.color}18`,
+                        color: subject.color,
+                        borderColor: `${subject.color}40`,
                       }}
                     >
-                      {isSelected && (
-                        <Check className="h-3.5 w-3.5 text-white" />
-                      )}
-                    </div>
-                  </div>
+                      <GraduationCap className="h-3.5 w-3.5" /> Maturità
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>

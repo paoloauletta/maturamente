@@ -422,6 +422,7 @@ export default function SubscriptionChange({
                       <AlertDialogFooter>
                         <AlertDialogCancel>Annulla</AlertDialogCancel>
                         <AlertDialogAction
+                          className="text-white"
                           onClick={async () => {
                             try {
                               setActionLoading(true);

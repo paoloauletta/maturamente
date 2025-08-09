@@ -20,6 +20,19 @@ export function SubscriptionChecker({
   useEffect(() => {
     async function checkSubscription() {
       try {
+        // If returning from Stripe checkout success on /dashboard, bypass once
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          const urlSessionId = url.searchParams.get("session_id");
+          const urlSuccess = url.searchParams.get("success");
+          if (urlSessionId && urlSuccess === "true") {
+            sessionStorage.setItem("bypassSubscriptionRedirect", "true");
+            setHasAccess(true);
+            setIsChecking(false);
+            return;
+          }
+        }
+
         // Check if user has bypassed the subscription requirement for this session
         const bypassFlag =
           typeof window !== "undefined"

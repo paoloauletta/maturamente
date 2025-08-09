@@ -66,21 +66,31 @@ export function SubjectsGrid({ subjects, error }: SubjectsGridProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold">Le tue materie</h2>
-          <p className="text-muted-foreground">
+      <div className="flex items-center justify-center md:justify-between text-center md:text-left">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-4xl font-semibold">Le tue materie</h2>
+          <p className="text-muted-foreground text-lg">
             {subjects.length} {subjects.length === 1 ? "materia" : "materie"}{" "}
             disponibili
           </p>
         </div>
-        <Link href="/dashboard/settings">
-          <Button className="gap-2 cursor-pointer" variant="outline">
+        {subjects.length < 12 && (
+          <Link href="/dashboard/settings" className="hidden md:block">
+            <Button className="gap-2 cursor-pointer text-white" size="lg">
+              <Plus className="h-4 w-4" />
+              <span>Acquista nuove materie</span>
+            </Button>
+          </Link>
+        )}
+      </div>
+      {subjects.length < 12 && (
+        <Link href="/dashboard/settings" className="block md:hidden">
+          <Button className="gap-2 cursor-pointer text-white w-full" size="lg">
             <Plus className="h-4 w-4" />
-            Acquista nuove materie
+            <span>Acquista nuove materie</span>
           </Button>
         </Link>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {subjects.map((subject) => (
