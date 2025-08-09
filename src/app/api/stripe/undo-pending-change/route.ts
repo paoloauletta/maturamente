@@ -159,15 +159,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If there's a Stripe schedule ID, cancel it
-    if (change.stripe_schedule_id) {
-      try {
-        await stripe.subscriptionSchedules.cancel(change.stripe_schedule_id);
-      } catch (stripeError) {
-        console.error("Error canceling Stripe schedule:", stripeError);
-        // Continue with local cleanup even if Stripe fails
-      }
-    }
+    // Note: previously we attempted to cancel a Stripe subscription schedule
+    // via a stored schedule ID on the pending change. Since we no longer
+    // store or rely on that field, we skip schedule cancellation here.
 
     // Mark the change as cancelled in our database
     await db

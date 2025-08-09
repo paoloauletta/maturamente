@@ -57,19 +57,8 @@ export async function POST(request: NextRequest) {
         await handlePaymentSucceeded(event.data.object as Stripe.Invoice);
         break;
 
-      case "subscription_schedule.completed":
-        console.log("Processing subscription_schedule.completed webhook");
-        await handleSubscriptionScheduleCompleted(
-          event.data.object as Stripe.SubscriptionSchedule
-        );
-        break;
-
-      case "subscription_schedule.canceled":
-        console.log("Processing subscription_schedule.canceled webhook");
-        await handleSubscriptionScheduleCanceled(
-          event.data.object as Stripe.SubscriptionSchedule
-        );
-        break;
+      // Note: subscription schedule events are no longer used since we do not
+      // rely on schedule IDs. We ignore these events intentionally.
 
       default:
         console.log(`Unhandled event type: ${event.type}`);
@@ -404,142 +393,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   }
 }
 
-async function handleSubscriptionScheduleUpdated(
-  schedule: Stripe.SubscriptionSchedule
-) {
-  console.log("Subscription schedule updated:", schedule.id);
-
-  // Update the pending change status if needed
-  await db
-    .update(pendingSubscriptionChanges)
-    .set({
-      status: schedule.status === "active" ? "pending" : schedule.status,
-      updated_at: new Date(),
-    })
-    .where(eq(pendingSubscriptionChanges.stripe_schedule_id, schedule.id));
-}
-
-async function handleSubscriptionScheduleCompleted(
-  schedule: Stripe.SubscriptionSchedule
-) {
-  console.log("Subscription schedule completed:", schedule.id);
-
-  try {
-    // Find the pending change associated with this schedule
-    const pendingChange = await db
-      .select()
-      .from(pendingSubscriptionChanges)
-      .where(eq(pendingSubscriptionChanges.stripe_schedule_id, schedule.id))
-      .limit(1);
-
-    if (!pendingChange.length) {
-      console.warn(
-        "No pending change found for completed schedule:",
-        schedule.id
-      );
-      return;
-    }
-
-    const change = pendingChange[0];
-
-    if (!change.user_id) {
-      console.error("No user ID found for pending change:", change.id);
-      return;
-    }
-
-    const userId = change.user_id as string;
-
-    // Get the subscription from the schedule
-    const subscription = schedule.subscription
-      ? await stripe.subscriptions.retrieve(schedule.subscription as string)
-      : null;
-
-    if (!subscription) {
-      console.error(
-        "No subscription found for completed schedule:",
-        schedule.id
-      );
-      return;
-    }
-
-    // Ensure we have valid values for required fields
-    const newSubjectCount = change.new_subject_count || 0;
-    const newPrice = change.new_price || "0";
-
-    // Update the subscription record with new details
-    await db
-      .update(subscriptions)
-      .set({
-        subject_count: newSubjectCount,
-        custom_price: newPrice,
-        stripe_price_id: subscription.items.data[0].price.id,
-        status: subscription.status,
-        current_period_start: new Date(
-          (subscription as any).current_period_start * 1000
-        ),
-        current_period_end: new Date(
-          (subscription as any).current_period_end * 1000
-        ),
-        updated_at: new Date(),
-      })
-      .where(eq(subscriptions.user_id, userId));
-
-    // Update user's subject access if we have new subject IDs
-    if (change.new_subject_ids && Array.isArray(change.new_subject_ids)) {
-      // Remove old subject access
-      await db
-        .delete(relationSubjectsUserTable)
-        .where(eq(relationSubjectsUserTable.user_id, userId));
-
-      // Add new subject access
-      for (const subjectId of change.new_subject_ids) {
-        await db.insert(relationSubjectsUserTable).values({
-          user_id: userId,
-          subject_id: subjectId,
-        });
-      }
-    }
-
-    // Mark the pending change as applied
-    await db
-      .update(pendingSubscriptionChanges)
-      .set({
-        status: "applied",
-        updated_at: new Date(),
-      })
-      .where(eq(pendingSubscriptionChanges.id, change.id));
-
-    console.log(
-      `Successfully applied scheduled plan change for user ${userId}`
-    );
-  } catch (error) {
-    console.error("Error processing completed subscription schedule:", error);
-
-    // Mark the change as failed
-    await db
-      .update(pendingSubscriptionChanges)
-      .set({
-        status: "failed",
-        updated_at: new Date(),
-      })
-      .where(eq(pendingSubscriptionChanges.stripe_schedule_id, schedule.id));
-  }
-}
-
-async function handleSubscriptionScheduleCanceled(
-  schedule: Stripe.SubscriptionSchedule
-) {
-  console.log("Subscription schedule canceled:", schedule.id);
-
-  // Mark the pending change as cancelled
-  await db
-    .update(pendingSubscriptionChanges)
-    .set({
-      status: "cancelled",
-      updated_at: new Date(),
-    })
-    .where(eq(pendingSubscriptionChanges.stripe_schedule_id, schedule.id));
-}
+// Schedule-related handlers removed since schedule IDs are not tracked anymore.
 
 // Helper function to process pending subscription changes
 async function processPendingSubscriptionChanges(stripeSubscriptionId: string) {
