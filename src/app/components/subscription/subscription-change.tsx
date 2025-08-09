@@ -70,6 +70,14 @@ export default function SubscriptionChange({
   const [actionLoading, setActionLoading] = useState(false);
   const [nextPeriodStart, setNextPeriodStart] = useState<string | null>(null);
 
+  // Keep local selection in sync with server-provided current subjects.
+  // This prevents the auto-preview from treating pending removals as if user re-added them
+  // when the props update after async loads.
+  useEffect(() => {
+    setSelectedSubjects(currentSubjects);
+    setPreview(null);
+  }, [JSON.stringify(currentSubjects), JSON.stringify(pendingRemovals)]);
+
   useEffect(() => {
     // Update preview when selection changes
     if (

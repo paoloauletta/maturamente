@@ -404,7 +404,10 @@ export default function SubscriptionManagement({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => router.push("/pricing")}>
+          <Button
+            onClick={() => router.push("/pricing")}
+            className="text-white"
+          >
             Iscriviti subito
           </Button>
         </CardContent>

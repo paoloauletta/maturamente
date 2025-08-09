@@ -8,6 +8,8 @@ import { LoadingSpinner } from "@/app/components/shared/loading/skeletons/loadin
 
 interface PDFComponentProps {
   note: Note;
+  mobileFullscreen?: boolean;
+  onToggleMobileFullscreen?: () => void;
 }
 
 interface ChatComponentProps {
@@ -15,7 +17,11 @@ interface ChatComponentProps {
 }
 
 // PDF component for displaying the note's PDF content with signed URL support
-export function PDFComponent({ note }: PDFComponentProps) {
+export function PDFComponent({
+  note,
+  mobileFullscreen,
+  onToggleMobileFullscreen,
+}: PDFComponentProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +117,8 @@ export function PDFComponent({ note }: PDFComponentProps) {
         className="w-full h-full"
         height="100%"
         initialScale={1.2}
+        mobileFullscreen={mobileFullscreen}
+        onToggleMobileFullscreen={onToggleMobileFullscreen}
       />
     </div>
   );

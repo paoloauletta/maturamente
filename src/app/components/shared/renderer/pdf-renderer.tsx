@@ -18,6 +18,8 @@ interface PdfViewerProps {
   className?: string;
   height?: number | string;
   initialScale?: number;
+  mobileFullscreen?: boolean;
+  onToggleMobileFullscreen?: () => void;
 }
 
 export default function PdfViewer({
@@ -25,6 +27,8 @@ export default function PdfViewer({
   className = "",
   height = 500,
   initialScale = 1.5,
+  mobileFullscreen,
+  onToggleMobileFullscreen,
 }: PdfViewerProps) {
   const [fullscreen, setFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +40,8 @@ export default function PdfViewer({
   const pdfDocRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const renderTaskRef = useRef<any>(null);
+  const pinchStartDistanceRef = useRef<number | null>(null);
+  const pinchStartScaleRef = useRef<number>(initialScale);
 
   // Function to get proxy URL for PDFs
   const getProxyUrl = (originalUrl: string) => {
@@ -379,10 +385,50 @@ export default function PdfViewer({
     };
   }, []);
 
+  // Touch gesture handlers for pinch-to-zoom on mobile
+  const getDistance = (touch1: Touch, touch2: Touch) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.hypot(dx, dy);
+  };
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touches = event.nativeEvent.touches as unknown as TouchList;
+    if (touches.length === 2) {
+      pinchStartDistanceRef.current = getDistance(touches[0], touches[1]);
+      pinchStartScaleRef.current = scale;
+    }
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touches = event.nativeEvent.touches as unknown as TouchList;
+    if (touches.length === 2 && pinchStartDistanceRef.current) {
+      event.preventDefault();
+      const currentDistance = getDistance(touches[0], touches[1]);
+      const ratio = currentDistance / pinchStartDistanceRef.current;
+      const nextScale = Math.max(
+        0.5,
+        Math.min(3, pinchStartScaleRef.current * ratio)
+      );
+      if (Math.abs(nextScale - scale) > 0.01) {
+        setScale(nextScale);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pinchStartDistanceRef.current) {
+      pinchStartDistanceRef.current = null;
+    }
+  };
+
   return (
     <div
       ref={containerRef}
-      className={`relative ${className}`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className={`relative touch-none md:touch-auto ${className}`}
       style={{
         width: "100%",
         height: typeof height === "number" ? `${height}px` : height,
@@ -465,7 +511,7 @@ export default function PdfViewer({
             )}
           </Button>
         </div>
-        <div className="bg-background/80 rounded-lg p-1 shadow-sm backdrop-blur-sm md:hidden block">
+        <div className="bg-background/80 rounded-lg p-1 shadow-sm backdrop-blur-sm md:hidden block relative">
           <Button
             variant="ghost"
             size="sm"
@@ -484,15 +530,26 @@ export default function PdfViewer({
           >
             <ZoomIn className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={reloadPDF}
-            title="Reload PDF"
-            className="h-8 w-8 p-0"
-          >
-            <RotateCw className="h-4 w-4" />
-          </Button>
+
+          {onToggleMobileFullscreen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 md:hidden"
+              aria-label={
+                mobileFullscreen
+                  ? "Esci a schermo intero"
+                  : "Apri a schermo intero"
+              }
+              onClick={onToggleMobileFullscreen}
+            >
+              {mobileFullscreen ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

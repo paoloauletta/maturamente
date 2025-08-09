@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Star, FileText, Bot, Clock, ArrowLeft, FileIcon } from "lucide-react";
+import {
+  Star,
+  FileText,
+  Bot,
+  Clock,
+  ArrowLeft,
+  FileIcon,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -20,6 +29,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDescriptionTruncatable, setIsDescriptionTruncatable] =
     useState(false);
+  const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement | null>(null);
 
   const router = useRouter();
@@ -80,12 +90,24 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
     }
   };
 
+  // Prevent background scroll when mobile fullscreen is active
+  useEffect(() => {
+    if (isMobileFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileFullscreen]);
+
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-[100dvh]">
       {/* Header */}
-      <div className="border-b pb-4 pt-2 px-4 overflow-x-hidden">
+      <div className="border-b pb-2 pt-1 px-4 overflow-x-hidden">
         {/* Back button */}
-        <div className="mb-4">
+        <div className="mb-2">
           <Button
             variant="outline"
             size="sm"
@@ -99,7 +121,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
 
         {/* Title and metadata */}
         <div className="space-y-3 max-w-full">
-          <div className="flex items-start justify-between border-b pb-4 gap-4 max-w-full">
+          <div className="flex items-start justify-between border-b pb-3 gap-4 max-w-full">
             <div className="flex-1 overflow-hidden">
               <h1 className="md:text-4xl text-2xl font-semibold text-foreground break-words line-clamp-1">
                 {mainTitle}
@@ -151,25 +173,40 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Mobile Tab Interface */}
-      <div className="md:hidden flex-1 px-4">
+      <div
+        className={cn(
+          "md:hidden",
+          isMobileFullscreen
+            ? "fixed inset-0 z-50 bg-background h-[100dvh] flex flex-col px-0"
+            : "flex-1 px-4"
+        )}
+      >
         <Tabs defaultValue="pdf" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 mt-4">
-            <TabsTrigger value="pdf" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              PDF
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              Chat
-            </TabsTrigger>
-          </TabsList>
+          <div className={cn("relative", isMobileFullscreen ? "mt-2" : "mt-4")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="pdf" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                PDF
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="flex items-center gap-2">
+                <Bot className="h-4 w-4" />
+                Chat
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent
             value="pdf"
             className="flex-1 mt-2 data-[state=active]:flex data-[state=active]:flex-col"
           >
             <div className="flex-1 rounded-lg border overflow-hidden min-h-0">
-              <PDFComponent note={note} />
+              <PDFComponent
+                note={note}
+                mobileFullscreen={isMobileFullscreen}
+                onToggleMobileFullscreen={() =>
+                  setIsMobileFullscreen((p) => !p)
+                }
+              />
             </div>
           </TabsContent>
 
@@ -185,7 +222,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
       </div>
 
       {/* Desktop Side-by-Side Layout */}
-      <div className="hidden md:flex flex-1 bg-background min-h-0 md:h-100 border-b">
+      <div className="hidden md:flex flex-1 bg-background border-b">
         {/* Left section - PDF Viewer */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* PDF Viewer */}
