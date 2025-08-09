@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db/drizzle";
 import { notesTable, relationSubjectsUserTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getCachedSignedUrl, setCachedSignedUrl } from "@/lib/signed-url-cache";
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,11 +73,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 1-hour TTL for signed URL caching to match Supabase signed URL expiry
+    const ttlSeconds = 3600;
+
+    // Try cache first
+    const sessionUserId = session.user.id;
+    const cacheKey = `${sessionUserId}:${finalStoragePath}`;
+    const cached = getCachedSignedUrl(cacheKey);
+    if (cached) {
+      return NextResponse.json({
+        signedUrl: cached.url,
+        message: "Signed URL (cached)",
+        expiresIn: cached.expiresInSeconds,
+        cached: true,
+      });
+    }
+
     // Generate a signed URL for the PDF file in the 'notes' bucket
     // URL expires in 1 hour (3600 seconds)
     const { data, error } = await supabaseAdmin.storage
       .from("notes")
-      .createSignedUrl(finalStoragePath, 3600);
+      .createSignedUrl(finalStoragePath, ttlSeconds);
 
     if (error) {
       console.error("Error generating signed URL:", error);
@@ -93,10 +110,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Store in cache
+    setCachedSignedUrl(cacheKey, data.signedUrl, ttlSeconds);
+
     return NextResponse.json({
       signedUrl: data.signedUrl,
       message: "Signed URL generated successfully",
-      expiresIn: 3600, // 1 hour in seconds
+      expiresIn: ttlSeconds, // 1 hour in seconds
+      cached: false,
     });
   } catch (error) {
     console.error("Unexpected error:", error);

@@ -236,21 +236,9 @@ async function DashboardContent() {
                 </CardFooter>
               </Card>
               {/* Ore di studio Section - takes 1/3 of the width */}
-              <Card className="lg:col-span-2 rounded-2xl border bg-card/80 backdrop-blur-sm shadow-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                    Ore di studio
-                  </CardTitle>
-                  <CardDescription>
-                    Tempo di studio mensile (tutte le materie)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="h-full pt-2">
-                  {" "}
-                  <NotesChart monthlyActivity={monthlyActivity} />
-                </CardContent>
-              </Card>
+              <div className="lg:col-span-2 rounded-2xl backdrop-blur-sm shadow-xl">
+                <NotesChart monthlyActivity={monthlyActivity} />
+              </div>
             </div>
           </div>
         </div>
