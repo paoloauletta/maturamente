@@ -24,7 +24,7 @@ export const subjectIconMap: Record<string, LucideIcon> = {
   Latino: BookMarked,
   Italiano: BookCopy,
   Matematica: Radical,
-  "Scienze Motorie e Sportive": Dumbbell,
+  "Scienze Motorie": Dumbbell,
   Scienze: Atom,
   Storia: Landmark,
 };

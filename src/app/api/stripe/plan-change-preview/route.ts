@@ -6,7 +6,11 @@ import {
 } from "@/lib/stripe";
 import { auth } from "@/lib/auth";
 import { db } from "@/db/drizzle";
-import { subscriptions, pendingSubscriptionChanges } from "@/db/schema";
+import {
+  subscriptions,
+  pendingSubscriptionChanges,
+  relationSubjectsUserTable,
+} from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
@@ -71,37 +75,54 @@ export async function POST(request: NextRequest) {
         )
       );
 
-    // Calculate effective current subject count considering pending changes
-    let effectiveCurrentSubjectCount = currentSubscription.subject_count || 0;
-    let effectiveCurrentPrice = parseFloat(
-      currentSubscription.custom_price || "0"
+    // Determine real-time current access from relations, but exclude subjects that are pending removal
+    const currentRelations = await db
+      .select()
+      .from(relationSubjectsUserTable)
+      .where(eq(relationSubjectsUserTable.user_id, session.user.id));
+    const originalSubjectIds = currentRelations
+      .map((r) => r.subject_id!)
+      .filter(Boolean) as string[];
+
+    // If there is a pending downgrade, treat the user's effective base as the target of that downgrade
+    const pendingDowngrade = pendingChanges.find(
+      (c) => c.change_type === "downgrade"
+    );
+    const baseSubjectIds: string[] = pendingDowngrade
+      ? (pendingDowngrade.new_subject_ids as string[]) || []
+      : originalSubjectIds;
+
+    let effectiveCurrentSubjectCount = baseSubjectIds.length;
+    let effectiveCurrentPrice = calculateCustomPrice(
+      effectiveCurrentSubjectCount
     );
 
-    // If there are pending downgrades, use the new count from the most recent pending change
-    if (pendingChanges.length > 0) {
-      const latestPendingChange = pendingChanges[pendingChanges.length - 1];
-      if (latestPendingChange.change_type === "downgrade") {
-        effectiveCurrentSubjectCount =
-          latestPendingChange.new_subject_count || 0;
-        effectiveCurrentPrice = parseFloat(
-          latestPendingChange.new_price || "0"
-        );
-      }
-    }
+    // Compare selection against base to infer intent and target
+    const addedNewSubjects = (newSubjectIds as string[]).filter(
+      (id: string) => !baseSubjectIds.includes(id)
+    );
+    const removedSubjects = baseSubjectIds.filter(
+      (id: string) => !(newSubjectIds as string[]).includes(id)
+    );
 
-    const newSubjectCount = newSubjectIds.length;
+    // Determine change type using explicit adds/removes
+    let changeType: "upgrade" | "downgrade" | "no_change" = "no_change";
+    if (addedNewSubjects.length > 0) changeType = "upgrade";
+    else if (removedSubjects.length > 0) changeType = "downgrade";
+
+    // Target subject ids for preview
+    const targetSubjectIds: string[] =
+      changeType === "upgrade"
+        ? Array.from(new Set<string>([...baseSubjectIds, ...addedNewSubjects]))
+        : changeType === "downgrade"
+        ? (newSubjectIds as string[])
+        : baseSubjectIds;
+
+    const newSubjectCount = targetSubjectIds.length;
 
     // Calculate pricing
     const currentPrice = effectiveCurrentPrice;
     const newPrice = calculateCustomPrice(newSubjectCount);
-
-    // Determine change type based on effective current count
-    const changeType =
-      newSubjectCount > effectiveCurrentSubjectCount
-        ? "upgrade"
-        : newSubjectCount < effectiveCurrentSubjectCount
-        ? "downgrade"
-        : "no_change";
 
     if (changeType === "no_change") {
       return NextResponse.json({

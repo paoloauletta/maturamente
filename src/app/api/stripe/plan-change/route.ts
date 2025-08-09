@@ -66,14 +66,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Load user's current subject access (actual immediate access today)
+    const currentRelations = await db
+      .select()
+      .from(relationSubjectsUserTable)
+      .where(eq(relationSubjectsUserTable.user_id, session.user.id));
+    const originalSubjectIds = currentRelations
+      .map((r) => r.subject_id!)
+      .filter(Boolean) as string[];
+
     const currentSubjectCount = currentSubscription.subject_count || 0;
-    const newSubjectCount = newSubjectIds.length;
+    // Subjects the user is trying to add that are not currently in access
+    const addedNewSubjects = (newSubjectIds as string[]).filter(
+      (id) => !originalSubjectIds.includes(id)
+    );
+
+    // Immediate target for upgrade must KEEP currently accessible subjects
+    // if the user is adding new ones while there is a pending downgrade.
+    let immediateTargetSubjectIds: string[] = newSubjectIds;
+    if (addedNewSubjects.length > 0) {
+      const set = new Set<string>([...originalSubjectIds, ...addedNewSubjects]);
+      immediateTargetSubjectIds = Array.from(set);
+    }
+
+    const newSubjectCount = immediateTargetSubjectIds.length;
 
     // Calculate new pricing
     const newPrice = calculateCustomPrice(newSubjectCount);
     const currentPrice = parseFloat(currentSubscription.custom_price || "0");
 
-    // Determine change type
+    // Determine change type based on actual current count
     const changeType =
       newSubjectCount > currentSubjectCount
         ? "upgrade"
@@ -221,10 +243,50 @@ export async function POST(request: NextRequest) {
         // For upgrades, update immediately
         await updateLocalSubscription(
           session.user.id,
-          newSubjectIds,
+          immediateTargetSubjectIds,
           newSubjectCount,
           newPrice
         );
+
+        // If there is a pending downgrade, ensure it is UPDATED to keep newly added subjects
+        const existingPendingDowngrade = await db
+          .select()
+          .from(pendingSubscriptionChanges)
+          .where(
+            and(
+              eq(
+                pendingSubscriptionChanges.subscription_id,
+                currentSubscription.id
+              ),
+              eq(pendingSubscriptionChanges.status, "pending"),
+              eq(pendingSubscriptionChanges.change_type, "downgrade")
+            )
+          );
+
+        if (existingPendingDowngrade.length > 0) {
+          const pending = existingPendingDowngrade[0];
+          // Merge newly added subjects so that the downgrade target retains them
+          const pendingTarget = Array.isArray(pending.new_subject_ids)
+            ? (pending.new_subject_ids as string[])
+            : [];
+          const mergedTargetSet = new Set<string>([
+            ...pendingTarget,
+            ...addedNewSubjects,
+          ]);
+          const mergedTargetIds = Array.from(mergedTargetSet);
+
+          await db
+            .update(pendingSubscriptionChanges)
+            .set({
+              new_subject_ids: mergedTargetIds,
+              new_subject_count: mergedTargetIds.length,
+              new_price: calculateCustomPrice(
+                mergedTargetIds.length
+              ).toString(),
+              updated_at: new Date(),
+            })
+            .where(eq(pendingSubscriptionChanges.id, pending.id));
+        }
       } else {
         // For downgrades, store pending change and keep current access until period end
         await storePendingDowngrade(
