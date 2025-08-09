@@ -1,7 +1,8 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Clock, Star } from "lucide-react";
+import { ArrowRight, Clock, Star, FileText, Dot } from "lucide-react";
 import type { DashboardRecentStudyData } from "@/utils/dashboard-data";
+import { getSubjectIcon } from "@/utils/subject-icons";
 
 interface RecentStudyNotesProps {
   recentNotes: DashboardRecentStudyData[];
@@ -48,45 +49,57 @@ export function RecentStudyNotes({ recentNotes }: RecentStudyNotesProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {recentNotes.map((note) => (
-        <Link
+    <div className="space-y-3 md:space-y-4">
+      {recentNotes.slice(0, 4).map((note) => (
+        <div
           key={note.id}
-          href={`/${note.subjectSlug}/${note.slug}`}
-          className="block group"
+          className="flex items-center justify-between gap-3 border-b pb-3 md:pb-4 last:border-0 last:pb-0"
+          style={{ ["--subject-color" as any]: note.subjectColor }}
         >
-          <div className="flex flex-col gap-3 p-4 border rounded-lg bg-card/50 hover:bg-card/80 transition-colors h-full">
-            <div className="flex items-start justify-between">
-              <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-2 flex-1">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            <div>
+              {(() => {
+                const Icon = getSubjectIcon(note.subjectName);
+                return Icon ? (
+                  <span className="flex h-9 w-9 items-center justify-center">
+                    <Icon
+                      className="h-5 w-5"
+                      style={{ color: `${note.subjectColor}90` }}
+                    />
+                  </span>
+                ) : null;
+              })()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-medium text-sm md:text-base break-words line-clamp-2">
                 {note.title}
-              </h3>
-              {note.is_favorite && (
-                <div className="ml-2 flex-shrink-0">
-                  <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>{formatStudyTime(note.studyTimeMinutes)}</span>
-              <span>•</span>
-              <span>{formatLastStudied(note.lastStudiedAt)}</span>
-            </div>
-
-            <div className="flex items-center justify-between mt-auto">
-              <span
-                className="text-xs px-2 py-1 rounded text-white"
-                style={{
-                  backgroundColor: note.subjectColor || "#6366f1",
-                }}
-              >
-                {note.subjectName}
+              </h4>
+              <span className="text-xs md:text-sm text-muted-foreground flex items-center">
+                <span>{note.subjectName}</span>
+                <Dot className="h-4 w-4" />
+                <span>{formatStudyTime(note.studyTimeMinutes)}</span>
               </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
           </div>
-        </Link>
+          <div className="flex-shrink-0">
+            <Link
+              href={`/${note.subjectSlug}/${note.slug}`}
+              className="inline-flex"
+            >
+              <span
+                className="inline-flex items-center border text-xs md:text-sm px-2 md:px-3 py-1 rounded-md transition-colors cursor-pointer"
+                style={{
+                  color: note.subjectColor,
+                  borderColor: `${note.subjectColor}33`,
+                  backgroundColor: `${note.subjectColor}0D`,
+                }}
+              >
+                Visualizza
+                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </span>
+            </Link>
+          </div>
+        </div>
       ))}
     </div>
   );

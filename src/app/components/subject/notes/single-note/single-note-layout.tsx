@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Star, FileText, Bot, Clock, ArrowLeft, FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -18,6 +18,9 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isDescriptionTruncatable, setIsDescriptionTruncatable] =
+    useState(false);
+  const descriptionRef = useRef<HTMLParagraphElement | null>(null);
 
   const router = useRouter();
   const params = useParams();
@@ -80,7 +83,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 pt-2 px-4 overflow-x-hidden">
+      <div className="border-b pb-4 pt-2 px-4 overflow-x-hidden">
         {/* Back button */}
         <div className="mb-4">
           <Button
@@ -123,6 +126,7 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
             {note.description && (
               <div className="overflow-hidden">
                 <p
+                  ref={descriptionRef}
                   className={cn(
                     "text-muted-foreground text-sm md:text-base break-words",
                     !isDescriptionExpanded && "line-clamp-2"
@@ -130,14 +134,16 @@ export function SingleNoteLayout({ note }: SingleNoteLayoutProps) {
                 >
                   {note.description}
                 </p>
-                <button
-                  onClick={() =>
-                    setIsDescriptionExpanded(!isDescriptionExpanded)
-                  }
-                  className="text-primary text-sm hover:underline mt-1 focus:outline-none"
-                >
-                  {isDescriptionExpanded ? "Leggi di meno" : "Leggi di più"}
-                </button>
+                {(isDescriptionTruncatable || isDescriptionExpanded) && (
+                  <button
+                    onClick={() =>
+                      setIsDescriptionExpanded(!isDescriptionExpanded)
+                    }
+                    className="text-primary text-sm hover:underline mt-1 focus:outline-none"
+                  >
+                    {isDescriptionExpanded ? "Leggi di meno" : "Leggi di più"}
+                  </button>
+                )}
               </div>
             )}
           </div>

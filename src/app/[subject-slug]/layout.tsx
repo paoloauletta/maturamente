@@ -37,5 +37,10 @@ export default async function DashboardLayout({
     notFound();
   }
 
-  return <SubjectLayoutClient>{children}</SubjectLayoutClient>;
+  return (
+    <div>
+      <div className="pointer-events-none absolute -top-24 left-1/2 h-32 w-full max-w-[960px] -translate-x-1/2 rounded-[50%] bg-[var(--subject-color)]/20 blur-[72px]" />
+      <SubjectLayoutClient>{children}</SubjectLayoutClient>
+    </div>
+  );
 }

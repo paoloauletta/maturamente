@@ -54,6 +54,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
   return (
     <div className="container mx-auto">
       <Suspense fallback={<NotesLoadingSkeleton />}>
+        {/* soft color glow background */}
         <NotesDataServer subjectSlug={subjectSlug} />
       </Suspense>
     </div>

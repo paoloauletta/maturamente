@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession, signOut } from "next-auth/react";
 import type { UserSubject } from "@/types/subjectsTypes";
+import { getSubjectIcon } from "@/utils/subject-icons";
 
 // Define the navigation link type
 type NavLink =
@@ -188,13 +189,24 @@ export default function SubjectSidebar({
       {/* Logo */}
       <div className="flex h-14 items-center border-b px-4 lg:h-[60px] justify-between">
         {!collapsed ? (
-          <h3 className="text-2xl">
+          <div>
             {currentSubject ? (
-              <span
-                className="font-semibold transition-colors"
-                style={{ color: currentSubject.color }}
-              >
-                {currentSubject.name}
+              <span className="flex items-center gap-2">
+                {(() => {
+                  const Icon = getSubjectIcon(currentSubject.name);
+                  return Icon ? (
+                    <Icon
+                      className="h-6 w-6"
+                      style={{ color: `${currentSubject.color}90` }}
+                    />
+                  ) : null;
+                })()}
+                <span
+                  className="font-semibold transition-colors text-2xl"
+                  style={{ color: currentSubject.color }}
+                >
+                  {currentSubject.name}
+                </span>
               </span>
             ) : (
               navLinks.length > 0 && (
@@ -202,7 +214,7 @@ export default function SubjectSidebar({
                 <span className="text-muted-foreground animate-pulse">...</span>
               )
             )}
-          </h3>
+          </div>
         ) : (
           <span
             className="w-full text-center text-2xl font-bold transition-colors"
@@ -211,7 +223,15 @@ export default function SubjectSidebar({
             }}
           >
             {currentSubject
-              ? currentSubject.name[0]?.toUpperCase()
+              ? (() => {
+                  const Icon = getSubjectIcon(currentSubject.name);
+                  return Icon ? (
+                    <Icon
+                      className="h-6 w-6"
+                      style={{ color: `${currentSubject.color}90` }}
+                    />
+                  ) : null;
+                })()
               : navLinks.length > 0 && (
                   // Show loading state when we have navLinks (indicates we're in a subject page)
                   <span className="text-muted-foreground animate-pulse">

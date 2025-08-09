@@ -16,6 +16,8 @@ import {
   Bar,
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -73,11 +75,29 @@ export function NotesChart({
     ? monthlyActivity.slice(-3)
     : monthlyActivity;
 
-  // Transform data for charts - only study time in hours
+  // Transform data for charts - study time in minutes for clearer axis units
   const chartData = processedActivity.map((activity) => ({
     month: activity.month,
-    ore: Math.round((activity.studyTimeMinutes / 60) * 10) / 10, // Convert to hours with 1 decimal
+    minutes: activity.studyTimeMinutes,
   }));
+
+  // Determine adaptive Y-axis ticks in minutes
+  const maxMinutes = Math.max(...chartData.map((d) => d.minutes), 0);
+
+  const getNiceStep = (maxValue: number) => {
+    // Aim for ~5 ticks
+    const roughStep = Math.max(1, Math.ceil(maxValue / 4));
+    const candidates = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 300, 360];
+    for (const c of candidates) {
+      if (c >= roughStep) return c;
+    }
+    // fallback for very large values
+    return Math.ceil(roughStep / 60) * 60;
+  };
+
+  const step = getNiceStep(Math.max(1, Math.ceil(maxMinutes * 1.1)));
+  const top = Math.ceil(Math.max(1, Math.ceil(maxMinutes * 1.1)) / step) * step;
+  const yTicks = Array.from({ length: 5 }, (_, i) => Math.min(top, i * step));
 
   // Format time for display
   const formatStudyTime = (minutes: number) => {
@@ -92,7 +112,7 @@ export function NotesChart({
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length > 0) {
-      const studyHours = payload[0]?.value || 0;
+      const studyMinutes = payload[0]?.value || 0;
 
       return (
         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -107,7 +127,7 @@ export function NotesChart({
             <span className="text-sm text-gray-600 dark:text-gray-300">
               Tempo di studio:{" "}
               <span className="font-medium">
-                {formatStudyTime(studyHours * 60)}
+                {formatStudyTime(studyMinutes)}
               </span>
             </span>
           </div>
@@ -130,11 +150,17 @@ export function NotesChart({
     tick: { fontSize: 12, dx: -5 },
     axisLine: { stroke: "hsl(var(--border))" },
     tickLine: { stroke: "hsl(var(--border))" },
-    domain: [0, (dataMax: number) => Math.max(Math.ceil(dataMax * 1.1), 1)] as [
-      number,
-      (dataMax: number) => number
-    ],
-    allowDecimals: true,
+    domain: [0, top] as [number, number],
+    ticks: yTicks,
+    tickFormatter: (value: number) => {
+      if (value === 0) return "0m";
+      const h = Math.floor(value / 60);
+      const m = value % 60;
+      if (h > 0 && m === 0) return `${h}h`;
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    },
+    allowDecimals: false,
   };
 
   const RechartsBarChart = () => (
@@ -158,8 +184,8 @@ export function NotesChart({
         <YAxis {...commonYAxisProps} />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f3f3f3" }} />
         <Bar
-          dataKey="ore"
-          name="ore"
+          dataKey="minutes"
+          name="Minuti"
           fill={subjectColor}
           radius={[4, 4, 0, 0]}
           barSize={32}
@@ -168,16 +194,11 @@ export function NotesChart({
     </ResponsiveContainer>
   );
 
-  const RechartsLineChart = () => (
+  const RechartsAreaChart = () => (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart
+      <AreaChart
         data={chartData}
-        margin={{
-          top: 5,
-          right: 0,
-          left: 0,
-          bottom: 5,
-        }}
+        margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
       >
         <CartesianGrid
           strokeDasharray="3 3"
@@ -187,26 +208,23 @@ export function NotesChart({
         <XAxis {...commonXAxisProps} />
         <YAxis {...commonYAxisProps} />
         <Tooltip content={<CustomTooltip />} />
-        <Line
+        <Area
           type="monotone"
-          dataKey="ore"
-          name="ore"
+          dataKey="minutes"
+          name="Minuti"
           stroke={subjectColor}
-          strokeWidth={3}
-          dot={{
-            fill: subjectColor,
-            strokeWidth: 0,
-            r: 4,
-          }}
+          strokeWidth={2}
+          fillOpacity={0.15}
+          fill={subjectColor}
+          dot={false}
           activeDot={{
-            r: 7,
+            r: 5,
             stroke: subjectColor,
             strokeWidth: 2,
             fill: subjectColor,
           }}
-          connectNulls
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 
@@ -240,7 +258,7 @@ export function NotesChart({
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex gap-2 w-full md:w-auto">
               <Button
-                variant={chartType === "bar" ? "default" : "outline"}
+                variant={chartType === "bar" ? "secondary" : "outline"}
                 size="sm"
                 onClick={() => setChartType("bar")}
                 className={`text-xs w-full md:w-auto ${
@@ -254,7 +272,7 @@ export function NotesChart({
                 Barre
               </Button>
               <Button
-                variant={chartType === "line" ? "default" : "outline"}
+                variant={chartType === "line" ? "secondary" : "outline"}
                 size="sm"
                 onClick={() => setChartType("line")}
                 className={`text-xs w-full md:w-auto ${
@@ -272,7 +290,7 @@ export function NotesChart({
         </div>
       </CardHeader>
       <CardContent>
-        {chartType === "bar" ? <RechartsBarChart /> : <RechartsLineChart />}
+        {chartType === "bar" ? <RechartsBarChart /> : <RechartsAreaChart />}
       </CardContent>
       <CardFooter>
         <div className="text-sm text-muted-foreground text-center w-full">

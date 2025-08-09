@@ -353,9 +353,7 @@ export default function SubscriptionChange({
         )}
 
         {/* Subject Selection */}
-        <div className="space-y-6">
-          <h4 className="text-sm font-medium">Seleziona Materie</h4>
-
+        <div className="flex flex-col gap-8">
           {/* Current Subjects Section */}
           {(() => {
             const currentUserSubjects = allSubjects
@@ -370,7 +368,7 @@ export default function SubscriptionChange({
 
             return (
               <div className="space-y-3">
-                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <h5 className="text-xs font-medium text-primary uppercase tracking-wide">
                   Le Tue Materie
                 </h5>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -398,7 +396,7 @@ export default function SubscriptionChange({
 
             return (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex md:flex-row flex-col md:items-center md:justify-between justify-start gap-2">
                   <h5 className="text-xs font-medium text-red-600 uppercase tracking-wide">
                     Modifiche in Sospeso
                   </h5>

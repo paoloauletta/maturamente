@@ -293,7 +293,7 @@ export default function SettingsClient({
       <SubscriptionManagement userId={id} />
 
       {/* Account Danger Section */}
-      <Card className="border-destructive/30">
+      <Card className="border-destructive/20 bg-destructive/5">
         <CardHeader className="pb-4 sm:pb-6">
           <CardTitle className="text-destructive">Zona Pericolosa</CardTitle>
           <CardDescription>
