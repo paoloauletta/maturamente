@@ -6,6 +6,9 @@ import { SingleNoteLayout } from "../../components/subject/notes/single-note/sin
 import { LoadingSpinner } from "@/app/components/shared/loading/skeletons/loading-spinner";
 import { connection } from "next/server";
 
+// Force dynamic rendering for authentication
+export const dynamic = "force-dynamic";
+
 interface NotePageProps {
   params: Promise<{
     "subject-slug": string;
