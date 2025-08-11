@@ -5,7 +5,7 @@ import {
   subjectsTable,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { calculateCustomPrice } from "@/lib/subscription-plans";
+import { calculateCustomPrice } from "@/utils/subscription/subscription-plans";
 import type {
   SubscriptionStatus,
   UserSubjectAccess,
@@ -99,108 +99,4 @@ export async function hasSubjectAccess(
   }
 
   return userAccess.selectedSubjects.includes(subjectId);
-}
-
-export async function getAllAvailableSubjects(userId: string) {
-  const subscription = await getUserSubscription(userId);
-
-  if (!subscription || subscription.status !== "active") {
-    return [];
-  }
-
-  // Get all subjects
-  const allSubjects = await db.select().from(subjectsTable);
-
-  return allSubjects;
-}
-
-export async function updateUserSubjectAccess(
-  userId: string,
-  subjectIds: string[]
-): Promise<void> {
-  // Remove all existing subject access for the user
-  await db
-    .delete(relationSubjectsUserTable)
-    .where(eq(relationSubjectsUserTable.user_id, userId));
-
-  // Add new subject access
-  for (const subjectId of subjectIds) {
-    await db.insert(relationSubjectsUserTable).values({
-      user_id: userId,
-      subject_id: subjectId,
-    });
-  }
-}
-
-export function canAccessFeature(
-  subscription: SubscriptionData | null,
-  feature: string
-): boolean {
-  if (!subscription || subscription.status !== "active") {
-    return false;
-  }
-
-  // Since all plans are now custom, access is based on having an active subscription
-  return true;
-}
-
-export function getSubscriptionLimits(subscription: SubscriptionData | null) {
-  if (!subscription || subscription.status !== "active") {
-    return {
-      maxSubjects: 0,
-      hasUnlimitedAccess: false,
-    };
-  }
-
-  return {
-    maxSubjects: subscription.subject_count || 0,
-    hasUnlimitedAccess: false, // Could be changed if you want unlimited plans
-  };
-}
-
-export async function validateSubjectAccess(
-  userId: string,
-  subjectIds: string[]
-): Promise<{ isValid: boolean; error?: string }> {
-  const subscription = await getUserSubscription(userId);
-
-  if (!subscription || subscription.status !== "active") {
-    return {
-      isValid: false,
-      error: "No active subscription found",
-    };
-  }
-
-  const maxSubjects = subscription.subject_count || 0;
-
-  if (subjectIds.length > maxSubjects) {
-    return {
-      isValid: false,
-      error: `Cannot select more than ${maxSubjects} subjects`,
-    };
-  }
-
-  return { isValid: true };
-}
-
-export async function getSubscriptionMetrics(userId: string) {
-  const subscription = await getUserSubscription(userId);
-  const userAccess = await getUserSubjectAccess(userId);
-
-  if (!subscription) {
-    return null;
-  }
-
-  return {
-    isActive: subscription.status === "active",
-    subjectsUsed: userAccess.subjectsCount,
-    subjectsLimit: subscription.subject_count || 0,
-    utilizationPercentage: subscription.subject_count
-      ? (userAccess.subjectsCount / subscription.subject_count) * 100
-      : 0,
-    monthlyPrice: subscription.custom_price
-      ? parseFloat(subscription.custom_price.toString())
-      : 0,
-    nextBillingDate: subscription.current_period_end,
-  };
 }

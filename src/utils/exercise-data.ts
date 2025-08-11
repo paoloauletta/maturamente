@@ -14,11 +14,9 @@ import {
 import { auth } from "@/lib/auth";
 import {
   ExerciseCardCompletionType,
-  SubtopicWithExercisesType,
   CompletedExerciseType,
   ContentType,
 } from "@/types/exercisesTypes";
-import { notFound } from "next/navigation";
 
 /**
  * Primary function to get the first topic ID for redirection

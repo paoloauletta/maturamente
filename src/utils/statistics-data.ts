@@ -9,7 +9,6 @@ import {
   subtopicsTable,
   completedExercisesCardsTable,
   exercisesCardsTable,
-  exercisesTable,
   completedExercisesTable,
 } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
@@ -17,7 +16,7 @@ import {
   getAllTopics,
   getAllSubtopics,
   getTopicsBySubjectId,
-} from "@/utils/topics-subtopics";
+} from "@/utils/topics-subtopics-data";
 import type {
   StatisticsData,
   MonthlyActivity,
@@ -784,69 +783,6 @@ export async function getRecentActivity(
     recentSimulations: finalRecentSimulations,
     recentTheory: finalRecentTheory,
     recentExerciseCards: finalRecentExerciseCards,
-  };
-}
-
-/**
- * Get all statistics data for a user
- */
-export async function getAllStatisticsData(
-  userId: string
-): Promise<StatisticsData> {
-  // Get simulation statistics
-  const simulationStats = await getSimulationStatistics(userId);
-
-  // Get theory completion data
-  const theoryData = await getTheoryCompletionData(userId);
-
-  // Get exercise completion data
-  const exerciseData = await getExerciseCompletionData(userId);
-
-  // Generate monthly activity
-  const monthlyActivity = generateMonthlyActivity(
-    simulationStats.userCompletedSimulations,
-    theoryData.completedTopics,
-    theoryData.completedSubtopics,
-    exerciseData.completedExercises
-  );
-
-  // Get recent activity
-  const { recentSimulations, recentTheory, recentExerciseCards } =
-    await getRecentActivity(
-      simulationStats.userCompletedSimulations,
-      theoryData.completedTopics,
-      theoryData.completedSubtopics,
-      exerciseData.completedExerciseCards
-    );
-
-  return {
-    // Simulation stats
-    totalSimulations: simulationStats.totalSimulations,
-    completedSimulations: simulationStats.completedSimulations,
-    completionPercentage: simulationStats.completionPercentage,
-    totalTimeSpent: simulationStats.totalTimeSpent,
-    simulationTypeBreakdown: simulationStats.simulationTypeBreakdown,
-    // Theory stats
-    totalTopics: theoryData.totalTopics,
-    completedTopicsCount: theoryData.completedTopicsCount,
-    topicsCompletionPercentage: theoryData.topicsCompletionPercentage,
-    totalSubtopics: theoryData.totalSubtopics,
-    completedSubtopicsCount: theoryData.completedSubtopicsCount,
-    subtopicsCompletionPercentage: theoryData.subtopicsCompletionPercentage,
-    // Exercise stats
-    totalExerciseCards: exerciseData.totalExerciseCards,
-    completedExerciseCards: exerciseData.completedExerciseCardsCount,
-    exerciseCardsCompletionPercentage:
-      exerciseData.exerciseCardsCompletionPercentage,
-    totalExercises: exerciseData.totalExercises,
-    completedExercises: exerciseData.completedExercisesCount,
-    exercisesCompletionPercentage: exerciseData.exercisesCompletionPercentage,
-    // Activity data
-    monthlyActivity,
-    // Recent activity
-    recentSimulations,
-    recentTheory,
-    recentExerciseCards,
   };
 }
 

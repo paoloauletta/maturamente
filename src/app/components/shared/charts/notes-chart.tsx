@@ -14,8 +14,6 @@ import { BarChart3, TrendingUp, Clock } from "lucide-react";
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -24,7 +22,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { MonthlyStudyActivity } from "@/utils/study-sessions";
+import type { MonthlyStudyActivity } from "@/types/studySessionsTypes";
 
 interface NotesChartProps {
   monthlyActivity: MonthlyStudyActivity[];

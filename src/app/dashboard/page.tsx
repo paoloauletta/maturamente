@@ -13,15 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  ArrowRight,
-  FileText,
-  BookOpen,
-  BarChart3,
-  Bot,
-  Crown,
-} from "lucide-react";
+import { ArrowRight, FileText, BookOpen, Bot, Crown } from "lucide-react";
 import { SubjectsDataServer } from "@/app/components/dashboard/le-mie-materie/subjects-data-server";
 import { DashboardSubjectCard } from "@/app/components/dashboard/dashboard-subject-card";
 import { getUserSubjects } from "@/utils/subjects-data";
@@ -32,7 +24,6 @@ import { NotesChart } from "@/app/components/shared/charts/notes-chart";
 import { RecentStudyNotes } from "@/app/components/dashboard/recent-study-notes";
 import {
   getDashboardSubscriptionData,
-  getDashboardStudyTimeData,
   getDashboardRecentStudyData,
 } from "@/utils/dashboard-data";
 import type { Metadata } from "next";

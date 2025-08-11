@@ -1,5 +1,5 @@
 import React from "react";
-import type { DashboardStudyTimeData } from "@/utils/dashboard-data";
+import type { DashboardStudyTimeData } from "@/types/dashboardTypes";
 
 interface StudyTimeChartProps {
   studyTimeData: DashboardStudyTimeData;

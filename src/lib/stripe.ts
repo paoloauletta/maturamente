@@ -14,7 +14,7 @@ import {
   type SubscriptionPlan,
   getCustomPricingLineItems,
   calculateCustomPrice,
-} from "./subscription-plans";
+} from "../utils/subscription/subscription-plans";
 
 // Stripe Price IDs for server-side usage
 export const STRIPE_PRICE_IDS = {

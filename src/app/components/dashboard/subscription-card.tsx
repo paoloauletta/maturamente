@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 import Link from "next/link";
-import type { DashboardSubscriptionData } from "@/utils/dashboard-data";
+import type { DashboardSubscriptionData } from "@/types/dashboardTypes";
 
 interface SubscriptionCardProps {
   subscriptionData: DashboardSubscriptionData;

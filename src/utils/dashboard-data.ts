@@ -1,7 +1,5 @@
-import { unstable_cache } from "next/cache";
 import { db } from "@/db/drizzle";
 import {
-  subscriptions,
   noteStudySessionsTable,
   notesTable,
   subjectsTable,
@@ -10,36 +8,11 @@ import {
 } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getSubscriptionStatus } from "./subscription-utils";
-
-export interface DashboardSubscriptionData {
-  hasActiveSubscription: boolean;
-  planName: string;
-  daysUntilRenewal: number | null;
-  renewalDate: string | null;
-  price: number | null;
-}
-
-export interface DashboardStudyTimeData {
-  totalHours: number;
-  totalMinutes: number;
-  weeklyData: Array<{
-    day: string;
-    hours: number;
-    minutes: number;
-  }>;
-}
-
-export interface DashboardRecentStudyData {
-  id: string;
-  title: string;
-  subjectName: string;
-  subjectSlug: string;
-  subjectColor: string;
-  slug: string;
-  lastStudiedAt: Date;
-  studyTimeMinutes: number;
-  is_favorite: boolean;
-}
+import {
+  DashboardSubscriptionData,
+  DashboardStudyTimeData,
+  DashboardRecentStudyData,
+} from "@/types/dashboardTypes";
 
 /**
  * Get subscription data for dashboard display
@@ -80,80 +53,6 @@ export async function getDashboardSubscriptionData(
     daysUntilRenewal,
     renewalDate: renewalDateString,
     price: subscriptionStatus.price,
-  };
-}
-
-/**
- * Get study time data for dashboard display
- */
-export async function getDashboardStudyTimeData(
-  userId: string
-): Promise<DashboardStudyTimeData> {
-  // Get study sessions from the last 7 days
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const sessions = await db
-    .select({
-      started_at: noteStudySessionsTable.started_at,
-      last_active_at: noteStudySessionsTable.last_active_at,
-    })
-    .from(noteStudySessionsTable)
-    .where(
-      and(
-        eq(noteStudySessionsTable.user_id, userId),
-        sql`${noteStudySessionsTable.started_at} >= ${sevenDaysAgo}`
-      )
-    )
-    .orderBy(desc(noteStudySessionsTable.started_at));
-
-  // Calculate total study time
-  let totalMinutes = 0;
-  sessions.forEach((session) => {
-    const startTime = new Date(session.started_at);
-    const endTime = new Date(session.last_active_at);
-    const durationMs = endTime.getTime() - startTime.getTime();
-    const durationMinutes = Math.max(1, Math.round(durationMs / (1000 * 60)));
-    totalMinutes += durationMinutes;
-  });
-
-  const totalHours = Math.floor(totalMinutes / 60);
-  const remainingMinutes = totalMinutes % 60;
-
-  // Group by day for weekly data
-  const sessionsByDay = sessions.reduce((acc, session) => {
-    const date = new Date(session.started_at);
-    const dayKey = date.toLocaleDateString("it-IT", { weekday: "short" });
-
-    if (!acc[dayKey]) {
-      acc[dayKey] = [];
-    }
-    acc[dayKey].push(session);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  // Calculate time for each day
-  const weeklyData = Object.entries(sessionsByDay).map(([day, daySessions]) => {
-    let dayMinutes = 0;
-    daySessions.forEach((session) => {
-      const startTime = new Date(session.started_at);
-      const endTime = new Date(session.last_active_at);
-      const durationMs = endTime.getTime() - startTime.getTime();
-      const durationMinutes = Math.max(1, Math.round(durationMs / (1000 * 60)));
-      dayMinutes += durationMinutes;
-    });
-
-    return {
-      day,
-      hours: Math.floor(dayMinutes / 60),
-      minutes: dayMinutes % 60,
-    };
-  });
-
-  return {
-    totalHours,
-    totalMinutes: remainingMinutes,
-    weeklyData,
   };
 }
 

@@ -9,7 +9,7 @@ import {
   getTopicsWithSubtopics,
   getSubtopicsByTopic,
   getSubjectBySlug,
-} from "@/utils/topics-subtopics";
+} from "@/utils/topics-subtopics-data";
 import {
   getExerciseCardsWithCompletion,
   getFavoriteExerciseCardsForTopic,

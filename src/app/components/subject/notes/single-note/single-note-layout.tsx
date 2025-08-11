@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Star,
-  FileText,
-  Bot,
-  Clock,
-  ArrowLeft,
-  FileIcon,
-  Maximize2,
-  Minimize2,
-} from "lucide-react";
+import { Star, FileText, Bot, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";

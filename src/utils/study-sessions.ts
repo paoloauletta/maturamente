@@ -1,55 +1,11 @@
 import { db } from "@/db/drizzle";
 import { noteStudySessionsTable, notesTable, subjectsTable } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-
-export interface StudySessionStats {
-  totalSessions: number;
-  totalTimeMinutes: number;
-  averageTimeMinutes: number;
-  lastStudiedAt: Date | null;
-}
-
-export interface NoteStudyStats extends StudySessionStats {
-  noteId: string;
-  noteTitle: string;
-}
-
-export interface MonthlyStudyActivity {
-  month: string;
-  studyTimeMinutes: number;
-  sessionCount: number;
-}
-
-export interface DailyStudyActivity {
-  date: string;
-  studyTimeMinutes: number;
-  sessionCount: number;
-}
-
-/**
- * Calculate total study time for a specific note and user
- */
-export async function getNoteStudyTime(
-  userId: string,
-  noteId: string
-): Promise<StudySessionStats> {
-  const sessions = await db
-    .select({
-      id: noteStudySessionsTable.id,
-      started_at: noteStudySessionsTable.started_at,
-      last_active_at: noteStudySessionsTable.last_active_at,
-    })
-    .from(noteStudySessionsTable)
-    .where(
-      and(
-        eq(noteStudySessionsTable.user_id, userId),
-        eq(noteStudySessionsTable.note_id, noteId)
-      )
-    )
-    .orderBy(desc(noteStudySessionsTable.started_at));
-
-  return calculateSessionStats(sessions);
-}
+import {
+  StudySessionStats,
+  NoteStudyStats,
+  MonthlyStudyActivity,
+} from "@/types/studySessionsTypes";
 
 /**
  * Get study time statistics for all notes for a user

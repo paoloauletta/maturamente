@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, GraduationCap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { UserSubject } from "@/types/subjectsTypes";
 import { getSubjectIcon } from "@/utils/subject-icons";
 

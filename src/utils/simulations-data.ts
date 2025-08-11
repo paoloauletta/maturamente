@@ -17,37 +17,6 @@ import {
   SimulationCardRow,
 } from "@/types/simulationsTypes";
 
-// Cache simulations and cards data - these change very infrequently
-export const getSimulationData = cache(async () => {
-  // Get all simulation cards with subject names
-  const cards = await db
-    .select({
-      id: simulationsCardsTable.id,
-      title: simulationsCardsTable.title,
-      description: simulationsCardsTable.description,
-      year: simulationsCardsTable.year,
-      subject_id: simulationsCardsTable.subject_id,
-      subject_name: subjectsTable.name,
-      order_index: simulationsCardsTable.order_index,
-      slug: simulationsCardsTable.slug,
-      created_at: simulationsCardsTable.created_at,
-    })
-    .from(simulationsCardsTable)
-    .leftJoin(
-      subjectsTable,
-      eq(simulationsCardsTable.subject_id, subjectsTable.id)
-    )
-    .orderBy(simulationsCardsTable.year, simulationsCardsTable.title);
-
-  // Get all simulations
-  const simulations = await db
-    .select()
-    .from(simulationsTable)
-    .orderBy(simulationsTable.title);
-
-  return { cards, simulations };
-});
-
 // Get simulations and cards data filtered by subject_id
 export const getSimulationDataBySubjectId = cache(async (subjectId: string) => {
   // Get simulation cards filtered by subject_id with subject names

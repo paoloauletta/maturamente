@@ -13,25 +13,6 @@ export async function getCurrentUserId(): Promise<string> {
   return userId;
 }
 
-export async function getCurrentUserEmail(): Promise<string> {
-  await connection();
-  const headersList = await headers();
-  const email = headersList.get("x-user-email");
-
-  if (!email) {
-    throw new Error("User email not found");
-  }
-
-  return email;
-}
-
-export async function getCurrentUserName(): Promise<string | null> {
-  await connection();
-  const headersList = await headers();
-  const name = headersList.get("x-user-name");
-  return name;
-}
-
 export async function getCurrentUser(): Promise<{
   id: string;
   email: string;

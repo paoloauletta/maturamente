@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { waitList } from "@/db/schema";
-import { validateUnsubscribeToken } from "@/lib/unsubscribe";
+import { validateUnsubscribeToken } from "@/utils/mail/unsubscribe";
 import { eq } from "drizzle-orm";
 
 export async function GET(req: Request) {

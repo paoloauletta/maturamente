@@ -11,8 +11,8 @@ import { TheorySkeleton } from "@/app/components/shared/loading";
 import {
   getTopicsWithSubtopicsBySubjectId,
   getSubjectBySlug,
-} from "@/utils/topics-subtopics";
-import { getUserCompletionData } from "@/utils/theory-completion";
+} from "@/utils/topics-subtopics-data";
+import { getUserCompletionData } from "@/utils/theory";
 import { getUserSubjectBySlug } from "@/utils/subjects-data";
 import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";

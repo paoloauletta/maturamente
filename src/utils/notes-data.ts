@@ -7,7 +7,7 @@ import {
   relationSubjectsUserTable,
   noteStudySessionsTable,
 } from "@/db/schema";
-import { eq, and, desc, count, countDistinct, sql } from "drizzle-orm";
+import { eq, and, desc, countDistinct, sql } from "drizzle-orm";
 import type { Note, FavoriteNote, SubjectNotesData } from "@/types/notesTypes";
 import type { NotesStatisticsData, RecentNote } from "@/types/statisticsTypes";
 import {
@@ -98,55 +98,6 @@ export const getSubjectNotes = cache(
 );
 
 /**
- * Get favorite notes for a specific user
- */
-export const getFavoriteNotes = cache(
-  async (userId: string): Promise<FavoriteNote[]> => {
-    try {
-      const favoriteNotesRaw = await db
-        .select({
-          id: flaggedNotesTable.id,
-          user_id: flaggedNotesTable.user_id,
-          note_id: flaggedNotesTable.note_id,
-          created_at: flaggedNotesTable.created_at,
-          note_title: notesTable.title,
-          note_description: notesTable.description,
-          note_storage_path: notesTable.storage_path,
-          note_subject_id: notesTable.subject_id,
-          note_n_pages: notesTable.n_pages,
-          note_slug: notesTable.slug,
-          note_created_at: notesTable.created_at,
-        })
-        .from(flaggedNotesTable)
-        .innerJoin(notesTable, eq(flaggedNotesTable.note_id, notesTable.id))
-        .where(eq(flaggedNotesTable.user_id, userId))
-        .orderBy(desc(flaggedNotesTable.created_at));
-
-      return favoriteNotesRaw.map((row) => ({
-        id: row.id,
-        user_id: row.user_id || "",
-        note_id: row.note_id || "",
-        created_at: row.created_at,
-        note: {
-          id: row.note_id || "",
-          title: row.note_title,
-          description: row.note_description || "",
-          storage_path: row.note_storage_path,
-          subject_id: row.note_subject_id || "",
-          n_pages: row.note_n_pages || 1,
-          slug: row.note_slug || "",
-          created_at: row.note_created_at,
-          is_favorite: true,
-        },
-      }));
-    } catch (error) {
-      console.error("Error fetching favorite notes:", error);
-      throw new Error("Failed to fetch favorite notes");
-    }
-  }
-);
-
-/**
  * Get a specific note by slug for a subject
  */
 export const getNoteBySlug = cache(
@@ -217,60 +168,6 @@ export const getNoteBySlug = cache(
     } catch (error) {
       console.error("Error fetching note by slug:", error);
       return null;
-    }
-  }
-);
-
-/**
- * Get recent notes across all subjects for a user
- */
-export const getRecentNotesAcrossAllSubjects = cache(
-  async (userId: string, limit: number = 5): Promise<RecentNote[]> => {
-    try {
-      const recentNotesQuery = await db
-        .select({
-          note_id: notesTable.id,
-          note_title: notesTable.title,
-          note_created_at: notesTable.created_at,
-          note_slug: notesTable.slug,
-          subject_name: subjectsTable.name,
-          subject_slug: subjectsTable.slug,
-          subject_color: subjectsTable.color,
-          is_favorite: flaggedNotesTable.id,
-        })
-        .from(notesTable)
-        .innerJoin(subjectsTable, eq(notesTable.subject_id, subjectsTable.id))
-        .innerJoin(
-          relationSubjectsUserTable,
-          and(
-            eq(relationSubjectsUserTable.subject_id, subjectsTable.id),
-            eq(relationSubjectsUserTable.user_id, userId)
-          )
-        )
-        .leftJoin(
-          flaggedNotesTable,
-          and(
-            eq(flaggedNotesTable.note_id, notesTable.id),
-            eq(flaggedNotesTable.user_id, userId)
-          )
-        )
-        .orderBy(desc(notesTable.created_at))
-        .limit(limit);
-
-      return recentNotesQuery.map((note) => ({
-        id: note.note_id,
-        title: note.note_title,
-        date: note.note_created_at.toLocaleDateString("it-IT"),
-        subjectName: note.subject_name,
-        subjectSlug: note.subject_slug,
-        subjectColor: note.subject_color,
-        slug: note.note_slug || "",
-        type: "note" as const,
-        is_favorite: !!note.is_favorite,
-      }));
-    } catch (error) {
-      console.error("Error fetching recent notes:", error);
-      return [];
     }
   }
 );

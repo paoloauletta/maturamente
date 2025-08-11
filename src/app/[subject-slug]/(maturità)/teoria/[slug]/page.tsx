@@ -10,7 +10,7 @@ import {
   getSubtopicsByTopic,
   getCompletedTopics,
   getCompletedSubtopics,
-} from "@/utils/topics-subtopics";
+} from "@/utils/topics-subtopics-data";
 import { getTheoryContent } from "@/utils/theory";
 import { SubtopicWithTheoryType } from "@/types/theoryTypes";
 import { TopicType, TopicWithSubtopicsType } from "@/types/topicsTypes";

@@ -17,16 +17,13 @@ import {
   Check,
   Star,
   Calculator,
-  Zap,
-  Target,
   ArrowRight,
   ArrowLeft,
   Settings,
-  ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { calculateCustomPrice } from "@/lib/subscription-plans";
-import getStripe from "@/lib/stripe-client";
+import { calculateCustomPrice } from "@/utils/subscription/subscription-plans";
+import getStripe from "@/utils/subscription/stripe-client";
 import { SubjectSelector } from "./subject-selector";
 import type { SubscriptionStatus } from "@/types/subscriptionTypes";
 

@@ -13,7 +13,6 @@ import {
 } from "@/utils/simulations-data";
 import SimulationCardDetailPage from "@/app/components/subject/simulations/simulation-card-detail";
 import { SimulationCardPageProps } from "@/types/simulationsTypes";
-import { unstable_cache } from "next/cache";
 
 // Force dynamic rendering since we use headers() through getCurrentUserId()
 export const dynamic = "force-dynamic";

@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Clock, Star, FileText, Dot } from "lucide-react";
-import type { DashboardRecentStudyData } from "@/utils/dashboard-data";
+import { ArrowRight, Clock, Dot } from "lucide-react";
+import type { DashboardRecentStudyData } from "@/types/dashboardTypes";
 import { getSubjectIcon } from "@/utils/subject-icons";
 
 interface RecentStudyNotesProps {

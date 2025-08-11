@@ -2,7 +2,6 @@
 import {
   Navbar,
   NavBody,
-  NavItems,
   MobileNav,
   NavbarButton,
   MobileNavHeader,
@@ -10,19 +9,12 @@ import {
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
 import { useState, useEffect } from "react";
-import { signIn, useSession, signOut } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Moon, Sun, Settings, Sparkles, LogOut } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const Logo = () => {
   return (

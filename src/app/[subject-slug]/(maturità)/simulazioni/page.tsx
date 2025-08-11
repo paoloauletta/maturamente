@@ -9,7 +9,7 @@ import {
   getUserSimulationStatus,
   getFavoriteSimulationCards,
 } from "@/utils/simulations-data";
-import { getSubjectBySlug } from "@/utils/topics-subtopics";
+import { getSubjectBySlug } from "@/utils/topics-subtopics-data";
 import { getUserSubjectBySlug } from "@/utils/subjects-data";
 import { UserSimulation, SimulationCard } from "@/types/simulationsTypes";
 import SimulationsLayout from "@/app/components/subject/simulations/simulations-layout";
