@@ -8,5 +8,5 @@ export {
   ExerciseFilter,
   useExerciseFilters,
   useIsMobile,
-  type FilterState,
 } from "./exercise-utils";
+export type { FilterState } from "@/types/exercisesTypes";

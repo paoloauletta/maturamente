@@ -13,3 +13,13 @@ export interface Subject {
 export interface UserSubject extends Subject {
   user_relation_created_at: Date;
 }
+
+// UI-specific representation of a subject used in subscription pages
+export interface SubjectUI {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  maturita?: boolean;
+  order_index: number;
+}

@@ -30,7 +30,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { SubjectCard, SubjectUI } from "./subject-card";
+import { SubjectCard } from "./subject-card";
+import type { SubjectUI } from "@/types/subjectsTypes";
 import { LoadingOverlay } from "./loading-overlay";
 
 // moved to components/loading-overlay
@@ -526,7 +527,7 @@ export default function SubscriptionChange({
 
         {/* Change Preview */}
         {hasChanges && (
-          <Card className="border-2">
+          <Card className="border">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Calculator className="w-5 h-5" />
@@ -563,7 +564,7 @@ export default function SubscriptionChange({
                 {/* Proration Amount */}
                 {preview.prorationAmount !== 0 && (
                   <div className="rounded-lg p-4 border-2 bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
-                    <div className="flex items-center justify-between">
+                    <div className="flex md:items-center items-start justify-between md:flex-row flex-col gap-2 md:gap-0">
                       <div>
                         <div className="font-medium text-green-800 dark:text-green-500">
                           {preview.isUpgrade
@@ -577,7 +578,7 @@ export default function SubscriptionChange({
                         </div>
                       </div>
                       <div className="text-xl font-bold text-green-600">
-                        {preview.isUpgrade ? "+" : "-"}€
+                        {preview.isUpgrade ? "+" : "-"} €
                         {Math.abs(preview.prorationAmount).toFixed(2)}
                       </div>
                     </div>

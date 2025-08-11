@@ -15,15 +15,7 @@ import {
 import { Check, Minus } from "lucide-react";
 import { getSubjectIcon } from "@/utils/subject-icons";
 import { useState } from "react";
-
-export interface SubjectUI {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  maturita?: boolean;
-  order_index: number;
-}
+import type { SubjectUI } from "@/types/subjectsTypes";
 
 interface SubjectCardProps {
   subject: SubjectUI;

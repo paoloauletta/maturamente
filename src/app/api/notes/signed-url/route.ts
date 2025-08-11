@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db/drizzle";
 import { notesTable, relationSubjectsUserTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getCachedSignedUrl, setCachedSignedUrl } from "@/lib/signed-url-cache";
+import { getCachedSignedUrl, setCachedSignedUrl } from "@/utils/signed-url-cache";
 
 export async function POST(request: NextRequest) {
   try {

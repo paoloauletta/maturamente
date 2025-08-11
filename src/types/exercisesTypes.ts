@@ -149,3 +149,9 @@ export interface MobileExerciseViewProps {
   inFavouritesPage?: boolean;
   isFlagged?: boolean;
 }
+
+// Local component filter state type for exercise UI
+export type FilterState = {
+  difficultyFilter: number | null;
+  completionFilter: string | null;
+};

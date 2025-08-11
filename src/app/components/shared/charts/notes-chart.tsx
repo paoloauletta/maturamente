@@ -240,8 +240,8 @@ export function NotesChart({
     <Card>
       <CardHeader className="pb-3 md:pb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+          <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Clock
                 className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0"
                 style={{ color: subjectColor }}

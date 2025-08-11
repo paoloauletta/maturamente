@@ -3,21 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-
-export interface ThemeImageProps {
-  lightImage: string;
-  darkImage: string;
-  mobileLightImage: string;
-  mobileDarkImage: string;
-  alt: string;
-  className?: string;
-  priority?: boolean;
-  sizes?: string;
-  mobileBreakpoint?: number;
-  width?: number;
-  height?: number;
-  fill?: boolean;
-}
+import type { ThemeImageProps } from "@/types/uiTypes";
 
 /**
  * A component that displays different images based on:

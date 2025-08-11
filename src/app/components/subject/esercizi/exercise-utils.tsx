@@ -15,12 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-
-// Types
-export type FilterState = {
-  difficultyFilter: number | null;
-  completionFilter: string | null;
-};
+import type { FilterState } from "@/types/exercisesTypes";
 
 // Exercise Progress Component
 interface ExerciseProgressProps {
