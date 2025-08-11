@@ -1,6 +1,6 @@
 import { db } from "@/db/drizzle";
 import { waitList } from "@/db/schema";
-import { send100thEmail } from "@/lib/100-email";
+import { send100thEmail } from "@/utils/mail/100-email";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
