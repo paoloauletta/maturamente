@@ -188,7 +188,7 @@ export function PricingPage({ subjects }: PricingPageProps) {
   // If user has active subscription, show the subscription message
   if (subscriptionStatus?.isActive && !checkingSubscription) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-muted/30">
+      <div className="min-h-screen bg-gradient-to-b from-primary/10 via-primary/5 to-background">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[80vh]">
             <Card className="max-w-lg w-full">

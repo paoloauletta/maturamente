@@ -32,22 +32,6 @@ export function RecentStudyNotes({ recentNotes }: RecentStudyNotesProps) {
       : `${hours}h`;
   };
 
-  const formatLastStudied = (date: Date) => {
-    const now = new Date();
-    const diffInHours = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-    );
-
-    if (diffInHours < 1) {
-      return "Ora";
-    } else if (diffInHours < 24) {
-      return `${diffInHours}h fa`;
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `${diffInDays}g fa`;
-    }
-  };
-
   return (
     <div className="space-y-3 md:space-y-4">
       {recentNotes.slice(0, 4).map((note) => (

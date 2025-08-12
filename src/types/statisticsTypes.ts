@@ -94,6 +94,7 @@ export interface RecentNote {
   slug: string;
   type: "note";
   is_favorite?: boolean;
+  studyTimeMinutes?: number;
 }
 
 export interface NotesStatisticsClientProps {

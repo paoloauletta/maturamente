@@ -19,7 +19,7 @@ export interface SubjectUI {
   id: string;
   name: string;
   description: string;
+  order_index: number;
   color: string;
   maturita?: boolean;
-  order_index: number;
 }

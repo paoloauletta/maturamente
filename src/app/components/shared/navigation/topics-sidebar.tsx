@@ -50,7 +50,6 @@ export default function TopicsSidebar({
   activeSubtopicSlug,
   onTopicClick,
   onSubtopicClick,
-  basePath = "/dashboard/teoria",
   completedTopicIds = [],
   completedSubtopicIds = [],
   readingProgress = {},

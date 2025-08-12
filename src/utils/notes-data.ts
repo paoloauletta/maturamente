@@ -8,7 +8,7 @@ import {
   noteStudySessionsTable,
 } from "@/db/schema";
 import { eq, and, desc, countDistinct, sql } from "drizzle-orm";
-import type { Note, FavoriteNote, SubjectNotesData } from "@/types/notesTypes";
+import type { Note, SubjectNotesData } from "@/types/notesTypes";
 import type { NotesStatisticsData, RecentNote } from "@/types/statisticsTypes";
 import {
   getSubjectStudyStats,
@@ -205,11 +205,7 @@ export const getStudiedNotesCount = cache(
  * Returns unique notes with their most recent study session
  */
 export const getRecentStudiedNotes = cache(
-  async (
-    userId: string,
-    subjectId: string,
-    limit: number = 5
-  ): Promise<RecentNote[]> => {
+  async (userId: string, subjectId: string): Promise<RecentNote[]> => {
     try {
       // First, get the most recent study session for each note
       const latestSessionsSubquery = db
@@ -242,24 +238,85 @@ export const getRecentStudiedNotes = cache(
           note_slug: notesTable.slug,
           subject_name: subjectsTable.name,
           last_studied_at: latestSessionsSubquery.latest_active_at,
+          session_started_at: noteStudySessionsTable.started_at,
         })
         .from(latestSessionsSubquery)
         .innerJoin(
           notesTable,
           eq(latestSessionsSubquery.note_id, notesTable.id)
         )
+        .innerJoin(
+          noteStudySessionsTable,
+          and(
+            eq(noteStudySessionsTable.note_id, latestSessionsSubquery.note_id),
+            eq(
+              noteStudySessionsTable.last_active_at,
+              latestSessionsSubquery.latest_active_at
+            )
+          )
+        )
         .innerJoin(subjectsTable, eq(notesTable.subject_id, subjectsTable.id))
-        .orderBy(desc(latestSessionsSubquery.latest_active_at))
-        .limit(limit);
+        .orderBy(desc(latestSessionsSubquery.latest_active_at));
 
-      return recentStudiedNotesQuery.map((note) => ({
-        id: note.note_id,
-        title: note.note_title,
-        date: new Date(note.last_studied_at).toLocaleDateString("it-IT"),
-        subjectName: note.subject_name,
-        slug: note.note_slug || "",
-        type: "note" as const,
-      }));
+      // For each note, aggregate the total study time spent on the SAME DAY
+      // as the latest session (sum of all overlapping sessions within that day)
+      const results: RecentNote[] = await Promise.all(
+        recentStudiedNotesQuery.map(async (row) => {
+          const latestSessionDate = new Date(row.last_studied_at);
+          const dayStart = new Date(latestSessionDate);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(latestSessionDate);
+          dayEnd.setHours(23, 59, 59, 999);
+
+          // Fetch all sessions for this note and user that overlap the day
+          const sessionsForDay = await db
+            .select({
+              started_at: noteStudySessionsTable.started_at,
+              last_active_at: noteStudySessionsTable.last_active_at,
+            })
+            .from(noteStudySessionsTable)
+            .where(
+              and(
+                eq(noteStudySessionsTable.user_id, userId),
+                eq(noteStudySessionsTable.note_id, row.note_id),
+                // Overlap condition: session intersects [dayStart, dayEnd]
+                sql`${noteStudySessionsTable.started_at} <= ${dayEnd} AND ${noteStudySessionsTable.last_active_at} >= ${dayStart}`
+              )
+            );
+
+          // Sum milliseconds across all overlapping sessions (clip to day bounds)
+          let totalDurationMs = 0;
+          for (const session of sessionsForDay) {
+            const sessionStart = new Date(session.started_at);
+            const sessionEnd = new Date(session.last_active_at);
+            const effectiveStart =
+              sessionStart < dayStart ? dayStart : sessionStart;
+            const effectiveEnd = sessionEnd > dayEnd ? dayEnd : sessionEnd;
+            const ms = Math.max(
+              0,
+              effectiveEnd.getTime() - effectiveStart.getTime()
+            );
+            totalDurationMs += ms;
+          }
+
+          const studyTimeMinutes = Math.max(
+            1,
+            Math.round(totalDurationMs / (1000 * 60))
+          );
+
+          return {
+            id: row.note_id,
+            title: row.note_title,
+            date: new Date(row.last_studied_at).toLocaleDateString("it-IT"),
+            subjectName: row.subject_name,
+            slug: row.note_slug || "",
+            type: "note" as const,
+            studyTimeMinutes,
+          };
+        })
+      );
+
+      return results;
     } catch (error) {
       console.error("Error fetching recent studied notes:", error);
       return [];
@@ -322,7 +379,7 @@ export const getNotesStatistics = cache(
       const totalSubjects = allUserNotesQuery.length > 0 ? 1 : 0;
 
       // Get recent studied notes (last 5 actually studied notes)
-      const recentNotes = await getRecentStudiedNotes(userId, subjectId, 5);
+      const recentNotes = await getRecentStudiedNotes(userId, subjectId);
 
       // Get study session statistics for this subject
       const subjectSlug = allUserNotesQuery[0]?.subject_slug || "";

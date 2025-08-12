@@ -10,7 +10,14 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, BookOpen, History, Star, FolderOpen } from "lucide-react";
+import {
+  FileText,
+  BookOpen,
+  History,
+  Star,
+  FolderOpen,
+  Dot,
+} from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -38,13 +45,28 @@ export function NotesStatistics({
 
   const {
     totalNotes,
-    favoriteNotes,
-    favoritePercentage,
     studiedNotes,
     studiedPercentage,
     recentNotes,
     monthlyStudyActivity,
   } = data;
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatStudyTime = (minutes: number) => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return remainingMinutes > 0
+      ? `${hours}h ${remainingMinutes}m`
+      : `${hours}h`;
+  };
 
   return (
     <div
@@ -190,8 +212,16 @@ export function NotesStatistics({
                           <h4 className="font-medium text-sm md:text-base break-words line-clamp-2">
                             {note.title}
                           </h4>
-                          <p className="text-xs md:text-sm text-muted-foreground">
-                            {note.subjectName} • {note.date}
+                          <p className="text-xs md:text-sm text-muted-foreground flex items-center">
+                            {note.subjectName}
+                            <Dot className="h-4 w-4" />
+                            {note.date}
+                            {note.studyTimeMinutes ? (
+                              <>
+                                <Dot className="h-4 w-4" />
+                                {formatStudyTime(note.studyTimeMinutes)}
+                              </>
+                            ) : null}
                           </p>
                         </div>
                       </div>

@@ -3,18 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Calendar,
   CreditCard,
-  Plus,
-  Minus,
   AlertTriangle,
-  Settings,
   ExternalLink,
   CheckCircle,
   XCircle,
   Clock,
   Loader2,
-  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,10 +81,10 @@ interface Subject {
   id: string;
   name: string;
   description: string;
-  slug: string;
+  order_index: number;
   color: string;
   maturita?: boolean;
-  order_index: number;
+  slug: string;
 }
 
 interface SubscriptionManagementProps {
@@ -187,93 +182,6 @@ export default function SubscriptionManagement({
       toast.error("Impossibile aprire il portale fatturazione");
     } finally {
       setActionLoading(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    try {
-      setActionLoading(true);
-      setLoadingOverlayMessage("Cancellazione abbonamento in corso...");
-
-      const response = await fetch("/api/stripe/cancel-subscription", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Impossibile cancellare abbonamento");
-      }
-
-      toast.success(
-        "L'abbonamento verrà cancellato alla fine del periodo di fatturazione"
-      );
-
-      // Automatic refresh after successful change
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      console.error("Error canceling subscription:", error);
-      toast.error("Impossibile cancellare abbonamento");
-      setActionLoading(false);
-      setLoadingOverlayMessage("");
-    }
-  };
-
-  const handleReactivateSubscription = async () => {
-    try {
-      setActionLoading(true);
-      setLoadingOverlayMessage("Riattivazione abbonamento in corso...");
-
-      const response = await fetch("/api/stripe/reactivate-subscription", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Impossibile riattivare abbonamento");
-      }
-
-      toast.success("Abbonamento riattivato con successo");
-
-      // Automatic refresh after successful change
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      console.error("Error reactivating subscription:", error);
-      toast.error("Impossibile riattivare abbonamento");
-      setActionLoading(false);
-      setLoadingOverlayMessage("");
-    }
-  };
-
-  const handleUndoPendingChange = async (changeId: string) => {
-    try {
-      setActionLoading(true);
-      setLoadingOverlayMessage("Annullamento modifica in corso...");
-
-      const response = await fetch("/api/stripe/undo-pending-change", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ changeId }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Impossibile annullare la modifica in sospeso");
-      }
-
-      toast.success("Modifica in sospeso annullata con successo");
-
-      // Automatic refresh after successful change
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      console.error("Error undoing pending change:", error);
-      toast.error("Impossibile annullare la modifica in sospeso");
-      setActionLoading(false);
-      setLoadingOverlayMessage("");
     }
   };
 

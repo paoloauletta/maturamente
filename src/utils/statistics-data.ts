@@ -12,6 +12,7 @@ import {
   completedExercisesTable,
 } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import {
   getAllTopics,
   getAllSubtopics,
@@ -118,492 +119,591 @@ async function calculateSimulationTypeBreakdown(
 /**
  * Get user's completed simulations data
  */
-export async function getUserCompletedSimulations(
+export function getUserCompletedSimulations(
   userId: string
 ): Promise<RawCompletedSimulation[]> {
-  return (await db.query.completedSimulationsTable.findMany({
-    where: eq(completedSimulationsTable.user_id, userId),
-    orderBy: (simulations, { desc }) => [desc(simulations.created_at)],
-  })) as RawCompletedSimulation[];
+  return unstable_cache(
+    async () => {
+      return (await db.query.completedSimulationsTable.findMany({
+        where: eq(completedSimulationsTable.user_id, userId),
+        orderBy: (simulations, { desc }) => [desc(simulations.created_at)],
+      })) as RawCompletedSimulation[];
+    },
+    ["getUserCompletedSimulations", userId],
+    { revalidate: 120, tags: ["simulations", "statistics", `user-${userId}`] }
+  )();
 }
 
 /**
  * Get all available simulations
  */
-export async function getAllSimulations() {
-  return await db.query.simulationsTable.findMany();
+export function getAllSimulations() {
+  return unstable_cache(
+    async () => {
+      return await db.query.simulationsTable.findMany();
+    },
+    ["getAllSimulations"],
+    { revalidate: 300, tags: ["simulations"] }
+  )();
 }
 
 /**
  * Get simulations filtered by subject
  */
-export async function getSimulationsBySubject(subjectId: string) {
-  return await db
-    .select()
-    .from(simulationsTable)
-    .innerJoin(
-      simulationsCardsTable,
-      eq(simulationsTable.card_id, simulationsCardsTable.id)
-    )
-    .where(eq(simulationsCardsTable.subject_id, subjectId));
+export function getSimulationsBySubject(subjectId: string) {
+  return unstable_cache(
+    async () => {
+      return await db
+        .select()
+        .from(simulationsTable)
+        .innerJoin(
+          simulationsCardsTable,
+          eq(simulationsTable.card_id, simulationsCardsTable.id)
+        )
+        .where(eq(simulationsCardsTable.subject_id, subjectId));
+    },
+    ["getSimulationsBySubject", subjectId],
+    { revalidate: 300, tags: ["simulations", `subject-${subjectId}`] }
+  )();
 }
 
 /**
  * Calculate simulation statistics
  */
-export async function getSimulationStatistics(userId: string) {
-  const [userCompletedSimulations, allSimulations] = await Promise.all([
-    getUserCompletedSimulations(userId),
-    getAllSimulations(),
-  ]);
+export function getSimulationStatistics(userId: string) {
+  return unstable_cache(
+    async () => {
+      const [userCompletedSimulations, allSimulations] = await Promise.all([
+        getUserCompletedSimulations(userId),
+        getAllSimulations(),
+      ]);
 
-  // Calculate simulation statistics
-  const completedSimulationIds = userCompletedSimulations.map(
-    (sim) => sim.simulation_id
-  );
-  const uniqueCompletedSimulations = new Set(completedSimulationIds).size;
-  const totalSimulations = allSimulations.length;
-  const completionPercentage =
-    totalSimulations > 0
-      ? Math.round((uniqueCompletedSimulations / totalSimulations) * 100)
-      : 0;
-
-  // Calculate time spent on simulations (in minutes)
-  const totalTimeSpent = userCompletedSimulations.reduce((total, sim) => {
-    if (sim.completed_at && sim.started_at) {
-      const start = new Date(sim.started_at);
-      const end = new Date(sim.completed_at);
-      const durationInMinutes = Math.round(
-        (end.getTime() - start.getTime()) / (1000 * 60)
+      const completedSimulationIds = userCompletedSimulations.map(
+        (sim) => sim.simulation_id
       );
-      return total + durationInMinutes;
+      const uniqueCompletedSimulations = new Set(completedSimulationIds).size;
+      const totalSimulations = allSimulations.length;
+      const completionPercentage =
+        totalSimulations > 0
+          ? Math.round((uniqueCompletedSimulations / totalSimulations) * 100)
+          : 0;
+
+      const totalTimeSpent = userCompletedSimulations.reduce((total, sim) => {
+        if (sim.completed_at && sim.started_at) {
+          const start = new Date(sim.started_at);
+          const end = new Date(sim.completed_at);
+          const durationInMinutes = Math.round(
+            (end.getTime() - start.getTime()) / (1000 * 60)
+          );
+          return total + durationInMinutes;
+        }
+        return total;
+      }, 0);
+
+      const simulationTypeBreakdown = await calculateSimulationTypeBreakdown(
+        userCompletedSimulations
+      );
+
+      return {
+        userCompletedSimulations,
+        totalSimulations,
+        completedSimulations: uniqueCompletedSimulations,
+        completionPercentage,
+        totalTimeSpent,
+        simulationTypeBreakdown,
+      };
+    },
+    ["getSimulationStatistics", userId],
+    {
+      revalidate: 120,
+      tags: ["statistics", "simulations", `user-${userId}`],
     }
-    return total;
-  }, 0);
-
-  // Calculate simulation type breakdown
-  const simulationTypeBreakdown = await calculateSimulationTypeBreakdown(
-    userCompletedSimulations
-  );
-
-  return {
-    userCompletedSimulations,
-    totalSimulations,
-    completedSimulations: uniqueCompletedSimulations,
-    completionPercentage,
-    totalTimeSpent,
-    simulationTypeBreakdown,
-  };
+  )();
 }
 
 /**
  * Calculate simulation statistics filtered by subject
  */
-export async function getSimulationStatisticsBySubject(
+export function getSimulationStatisticsBySubject(
   userId: string,
   subjectId: string
 ) {
-  const [userCompletedSimulations, subjectSimulations] = await Promise.all([
-    getUserCompletedSimulations(userId),
-    getSimulationsBySubject(subjectId),
-  ]);
+  return unstable_cache(
+    async () => {
+      const [userCompletedSimulations, subjectSimulations] = await Promise.all([
+        getUserCompletedSimulations(userId),
+        getSimulationsBySubject(subjectId),
+      ]);
 
-  // Extract simulation IDs from the subject simulations
-  const subjectSimulationIds = subjectSimulations.map(
-    (sim) => sim.simulations.id
-  );
+      const subjectSimulationIds = subjectSimulations.map(
+        (sim) => sim.simulations.id
+      );
 
-  // Filter user completed simulations to only those from this subject
-  const subjectUserCompletedSimulations = userCompletedSimulations.filter(
-    (sim) =>
-      sim.simulation_id && subjectSimulationIds.includes(sim.simulation_id)
-  );
+      const subjectUserCompletedSimulations = userCompletedSimulations.filter(
+        (sim) =>
+          sim.simulation_id && subjectSimulationIds.includes(sim.simulation_id)
+      );
 
-  // Calculate simulation statistics for this subject only
-  const completedSimulationIds = subjectUserCompletedSimulations.map(
-    (sim) => sim.simulation_id
-  );
-  const uniqueCompletedSimulations = new Set(completedSimulationIds).size;
-  const totalSimulations = subjectSimulations.length;
-  const completionPercentage =
-    totalSimulations > 0
-      ? Math.round((uniqueCompletedSimulations / totalSimulations) * 100)
-      : 0;
+      const completedSimulationIds = subjectUserCompletedSimulations.map(
+        (sim) => sim.simulation_id
+      );
+      const uniqueCompletedSimulations = new Set(completedSimulationIds).size;
+      const totalSimulations = subjectSimulations.length;
+      const completionPercentage =
+        totalSimulations > 0
+          ? Math.round((uniqueCompletedSimulations / totalSimulations) * 100)
+          : 0;
 
-  // Calculate time spent on simulations (in minutes)
-  const totalTimeSpent = subjectUserCompletedSimulations.reduce(
-    (total, sim) => {
-      if (sim.completed_at && sim.started_at) {
-        const start = new Date(sim.started_at);
-        const end = new Date(sim.completed_at);
-        const durationInMinutes = Math.round(
-          (end.getTime() - start.getTime()) / (1000 * 60)
-        );
-        return total + durationInMinutes;
-      }
-      return total;
+      const totalTimeSpent = subjectUserCompletedSimulations.reduce(
+        (total, sim) => {
+          if (sim.completed_at && sim.started_at) {
+            const start = new Date(sim.started_at);
+            const end = new Date(sim.completed_at);
+            const durationInMinutes = Math.round(
+              (end.getTime() - start.getTime()) / (1000 * 60)
+            );
+            return total + durationInMinutes;
+          }
+          return total;
+        },
+        0
+      );
+
+      const simulationTypeBreakdown = await calculateSimulationTypeBreakdown(
+        subjectUserCompletedSimulations
+      );
+
+      return {
+        userCompletedSimulations: subjectUserCompletedSimulations,
+        totalSimulations,
+        completedSimulations: uniqueCompletedSimulations,
+        completionPercentage,
+        totalTimeSpent,
+        simulationTypeBreakdown,
+      };
     },
-    0
-  );
-
-  // Calculate simulation type breakdown
-  const simulationTypeBreakdown = await calculateSimulationTypeBreakdown(
-    subjectUserCompletedSimulations
-  );
-
-  return {
-    userCompletedSimulations: subjectUserCompletedSimulations,
-    totalSimulations,
-    completedSimulations: uniqueCompletedSimulations,
-    completionPercentage,
-    totalTimeSpent,
-    simulationTypeBreakdown,
-  };
+    ["getSimulationStatisticsBySubject", userId, subjectId],
+    {
+      revalidate: 120,
+      tags: [
+        "statistics",
+        "simulations",
+        `user-${userId}`,
+        `subject-${subjectId}`,
+      ],
+    }
+  )();
 }
 
 /**
  * Get user's completed topics and subtopics
  */
-export async function getTheoryCompletionData(userId: string) {
-  const [allTopics, allSubtopics] = await Promise.all([
-    getAllTopics(),
-    getAllSubtopics(),
-  ]);
+export function getTheoryCompletionData(userId: string) {
+  return unstable_cache(
+    async () => {
+      const [allTopics, allSubtopics] = await Promise.all([
+        getAllTopics(),
+        getAllSubtopics(),
+      ]);
 
-  const [completedTopics, completedSubtopics] = await Promise.all([
-    db
-      .select({
-        topic_id: completedTopicsTable.topic_id,
-        created_at: completedTopicsTable.created_at,
-        name: topicsTable.name,
-        slug: topicsTable.slug,
-      })
-      .from(completedTopicsTable)
-      .innerJoin(topicsTable, eq(completedTopicsTable.topic_id, topicsTable.id))
-      .where(eq(completedTopicsTable.user_id, userId))
-      .orderBy(desc(completedTopicsTable.created_at)) as Promise<
-      RawCompletedTopic[]
-    >,
+      const [completedTopics, completedSubtopics] = await Promise.all([
+        db
+          .select({
+            topic_id: completedTopicsTable.topic_id,
+            created_at: completedTopicsTable.created_at,
+            name: topicsTable.name,
+            slug: topicsTable.slug,
+          })
+          .from(completedTopicsTable)
+          .innerJoin(
+            topicsTable,
+            eq(completedTopicsTable.topic_id, topicsTable.id)
+          )
+          .where(eq(completedTopicsTable.user_id, userId))
+          .orderBy(desc(completedTopicsTable.created_at)) as Promise<
+          RawCompletedTopic[]
+        >,
 
-    db
-      .select({
-        subtopic_id: completedSubtopicsTable.subtopic_id,
-        created_at: completedSubtopicsTable.created_at,
-        name: subtopicsTable.name,
-        topic_id: subtopicsTable.topic_id,
-        slug: subtopicsTable.slug,
-        topic_slug: topicsTable.slug,
-      })
-      .from(completedSubtopicsTable)
-      .innerJoin(
-        subtopicsTable,
-        eq(completedSubtopicsTable.subtopic_id, subtopicsTable.id)
-      )
-      .innerJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
-      .where(eq(completedSubtopicsTable.user_id, userId))
-      .orderBy(desc(completedSubtopicsTable.created_at)) as Promise<
-      RawCompletedSubtopic[]
-    >,
-  ]);
+        db
+          .select({
+            subtopic_id: completedSubtopicsTable.subtopic_id,
+            created_at: completedSubtopicsTable.created_at,
+            name: subtopicsTable.name,
+            topic_id: subtopicsTable.topic_id,
+            slug: subtopicsTable.slug,
+            topic_slug: topicsTable.slug,
+          })
+          .from(completedSubtopicsTable)
+          .innerJoin(
+            subtopicsTable,
+            eq(completedSubtopicsTable.subtopic_id, subtopicsTable.id)
+          )
+          .innerJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
+          .where(eq(completedSubtopicsTable.user_id, userId))
+          .orderBy(desc(completedSubtopicsTable.created_at)) as Promise<
+          RawCompletedSubtopic[]
+        >,
+      ]);
 
-  // Calculate theory completion percentages
-  const totalTopics = allTopics.length;
-  const totalSubtopics = allSubtopics.length;
-  const completedTopicsCount = completedTopics.length;
-  const completedSubtopicsCount = completedSubtopics.length;
+      const totalTopics = allTopics.length;
+      const totalSubtopics = allSubtopics.length;
+      const completedTopicsCount = completedTopics.length;
+      const completedSubtopicsCount = completedSubtopics.length;
 
-  const topicsCompletionPercentage = Math.round(
-    (completedTopicsCount / totalTopics) * 100
-  );
-  const subtopicsCompletionPercentage = Math.round(
-    (completedSubtopicsCount / totalSubtopics) * 100
-  );
+      const topicsCompletionPercentage = Math.round(
+        (completedTopicsCount / totalTopics) * 100
+      );
+      const subtopicsCompletionPercentage = Math.round(
+        (completedSubtopicsCount / totalSubtopics) * 100
+      );
 
-  return {
-    allTopics,
-    allSubtopics,
-    completedTopics,
-    completedSubtopics,
-    totalTopics,
-    totalSubtopics,
-    completedTopicsCount,
-    completedSubtopicsCount,
-    topicsCompletionPercentage,
-    subtopicsCompletionPercentage,
-  };
+      return {
+        allTopics,
+        allSubtopics,
+        completedTopics,
+        completedSubtopics,
+        totalTopics,
+        totalSubtopics,
+        completedTopicsCount,
+        completedSubtopicsCount,
+        topicsCompletionPercentage,
+        subtopicsCompletionPercentage,
+      };
+    },
+    ["getTheoryCompletionData", userId],
+    {
+      revalidate: 120,
+      tags: ["completion", "statistics", `user-${userId}`],
+    }
+  )();
 }
 
 /**
  * Get user's completed exercise cards data
  */
-export async function getExerciseCompletionData(userId: string) {
-  // Get all exercise cards and exercises
-  const [allExerciseCards, allExercises] = await Promise.all([
-    db.query.exercisesCardsTable.findMany(),
-    db.query.exercisesTable.findMany(),
-  ]);
+export function getExerciseCompletionData(userId: string) {
+  return unstable_cache(
+    async () => {
+      // Get all exercise cards and exercises
+      const [allExerciseCards, allExercises] = await Promise.all([
+        db.query.exercisesCardsTable.findMany(),
+        db.query.exercisesTable.findMany(),
+      ]);
 
-  // Get user's completed exercise cards
-  const completedExerciseCards = (await db
-    .select({
-      exercise_card_id: completedExercisesCardsTable.exercise_card_id,
-      created_at: completedExercisesCardsTable.created_at,
-      description: exercisesCardsTable.description,
-      slug: exercisesCardsTable.slug,
-      difficulty: exercisesCardsTable.difficulty,
-      subtopic_name: subtopicsTable.name,
-      topic_name: topicsTable.name,
-    })
-    .from(completedExercisesCardsTable)
-    .innerJoin(
-      exercisesCardsTable,
-      eq(completedExercisesCardsTable.exercise_card_id, exercisesCardsTable.id)
-    )
-    .leftJoin(
-      subtopicsTable,
-      eq(exercisesCardsTable.subtopic_id, subtopicsTable.id)
-    )
-    .leftJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
-    .where(eq(completedExercisesCardsTable.user_id, userId))
-    .orderBy(
-      desc(completedExercisesCardsTable.created_at)
-    )) as RawCompletedExerciseCard[];
+      // Get user's completed exercise cards
+      const completedExerciseCards = (await db
+        .select({
+          exercise_card_id: completedExercisesCardsTable.exercise_card_id,
+          created_at: completedExercisesCardsTable.created_at,
+          description: exercisesCardsTable.description,
+          slug: exercisesCardsTable.slug,
+          difficulty: exercisesCardsTable.difficulty,
+          subtopic_name: subtopicsTable.name,
+          topic_name: topicsTable.name,
+        })
+        .from(completedExercisesCardsTable)
+        .innerJoin(
+          exercisesCardsTable,
+          eq(
+            completedExercisesCardsTable.exercise_card_id,
+            exercisesCardsTable.id
+          )
+        )
+        .leftJoin(
+          subtopicsTable,
+          eq(exercisesCardsTable.subtopic_id, subtopicsTable.id)
+        )
+        .leftJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
+        .where(eq(completedExercisesCardsTable.user_id, userId))
+        .orderBy(
+          desc(completedExercisesCardsTable.created_at)
+        )) as RawCompletedExerciseCard[];
 
-  // Get user's completed exercises (individual exercises, not cards)
-  const completedExercises = await db.query.completedExercisesTable.findMany({
-    where: eq(completedExercisesTable.user_id, userId),
-  });
+      // Get user's completed exercises (individual exercises, not cards)
+      const completedExercises =
+        await db.query.completedExercisesTable.findMany({
+          where: eq(completedExercisesTable.user_id, userId),
+        });
 
-  // Calculate exercise statistics
-  const totalExerciseCards = allExerciseCards.length;
-  const totalExercises = allExercises.length;
-  const completedExerciseCardsCount = completedExerciseCards.length;
-  const completedExercisesCount = new Set(
-    completedExercises.map((ex) => ex.exercise_id)
-  ).size;
+      // Calculate exercise statistics
+      const totalExerciseCards = allExerciseCards.length;
+      const totalExercises = allExercises.length;
+      const completedExerciseCardsCount = completedExerciseCards.length;
+      const completedExercisesCount = new Set(
+        completedExercises.map((ex) => ex.exercise_id)
+      ).size;
 
-  const exerciseCardsCompletionPercentage =
-    totalExerciseCards > 0
-      ? Math.round((completedExerciseCardsCount / totalExerciseCards) * 100)
-      : 0;
+      const exerciseCardsCompletionPercentage =
+        totalExerciseCards > 0
+          ? Math.round((completedExerciseCardsCount / totalExerciseCards) * 100)
+          : 0;
 
-  const exercisesCompletionPercentage =
-    totalExercises > 0
-      ? Math.round((completedExercisesCount / totalExercises) * 100)
-      : 0;
+      const exercisesCompletionPercentage =
+        totalExercises > 0
+          ? Math.round((completedExercisesCount / totalExercises) * 100)
+          : 0;
 
-  return {
-    allExerciseCards,
-    allExercises,
-    completedExerciseCards,
-    completedExercises,
-    totalExerciseCards,
-    totalExercises,
-    completedExerciseCardsCount,
-    completedExercisesCount,
-    exerciseCardsCompletionPercentage,
-    exercisesCompletionPercentage,
-  };
+      return {
+        allExerciseCards,
+        allExercises,
+        completedExerciseCards,
+        completedExercises,
+        totalExerciseCards,
+        totalExercises,
+        completedExerciseCardsCount,
+        completedExercisesCount,
+        exerciseCardsCompletionPercentage,
+        exercisesCompletionPercentage,
+      };
+    },
+    ["getExerciseCompletionData", userId],
+    {
+      revalidate: 120,
+      tags: ["exercises", "statistics", `user-${userId}`],
+    }
+  )();
 }
 
 /**
  * Get user's completed exercise cards data filtered by subject
  */
-export async function getExerciseCompletionDataBySubject(
+export function getExerciseCompletionDataBySubject(
   userId: string,
   subjectId: string
 ) {
-  // Get topics for this subject
-  const subjectTopics = await getTopicsBySubjectId(subjectId);
-  const subjectTopicIds = subjectTopics.map((topic) => topic.id);
+  return unstable_cache(
+    async () => {
+      // Get topics for this subject
+      const subjectTopics = await getTopicsBySubjectId(subjectId);
+      const subjectTopicIds = subjectTopics.map((topic) => topic.id);
 
-  // Get all subtopics for this subject
-  const allSubtopics = await db.query.subtopicsTable.findMany();
-  const subjectSubtopics = allSubtopics.filter((subtopic) =>
-    subjectTopicIds.includes(subtopic.topic_id)
-  );
-  const subjectSubtopicIds = subjectSubtopics.map((subtopic) => subtopic.id);
+      // Get all subtopics for this subject
+      const allSubtopics = await db.query.subtopicsTable.findMany();
+      const subjectSubtopics = allSubtopics.filter((subtopic) =>
+        subjectTopicIds.includes(subtopic.topic_id)
+      );
+      const subjectSubtopicIds = subjectSubtopics.map(
+        (subtopic) => subtopic.id
+      );
 
-  // Get all exercise cards for this subject
-  const allExerciseCards = await db.query.exercisesCardsTable.findMany();
-  const subjectExerciseCards = allExerciseCards.filter(
-    (card) => card.subtopic_id && subjectSubtopicIds.includes(card.subtopic_id)
-  );
-  const subjectExerciseCardIds = subjectExerciseCards.map((card) => card.id);
+      // Get all exercise cards for this subject
+      const allExerciseCards = await db.query.exercisesCardsTable.findMany();
+      const subjectExerciseCards = allExerciseCards.filter(
+        (card) =>
+          card.subtopic_id && subjectSubtopicIds.includes(card.subtopic_id)
+      );
+      const subjectExerciseCardIds = subjectExerciseCards.map(
+        (card) => card.id
+      );
 
-  // Get all exercises for this subject
-  const allExercises = await db.query.exercisesTable.findMany();
-  const subjectExercises = allExercises.filter((exercise) =>
-    subjectExerciseCardIds.includes(exercise.exercise_card_id)
-  );
+      // Get all exercises for this subject
+      const allExercises = await db.query.exercisesTable.findMany();
+      const subjectExercises = allExercises.filter((exercise) =>
+        subjectExerciseCardIds.includes(exercise.exercise_card_id)
+      );
 
-  // Get user's completed exercise cards for this subject
-  const completedExerciseCards = (await db
-    .select({
-      exercise_card_id: completedExercisesCardsTable.exercise_card_id,
-      created_at: completedExercisesCardsTable.created_at,
-      description: exercisesCardsTable.description,
-      slug: exercisesCardsTable.slug,
-      difficulty: exercisesCardsTable.difficulty,
-      subtopic_name: subtopicsTable.name,
-      topic_name: topicsTable.name,
-    })
-    .from(completedExercisesCardsTable)
-    .innerJoin(
-      exercisesCardsTable,
-      eq(completedExercisesCardsTable.exercise_card_id, exercisesCardsTable.id)
-    )
-    .leftJoin(
-      subtopicsTable,
-      eq(exercisesCardsTable.subtopic_id, subtopicsTable.id)
-    )
-    .leftJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
-    .where(
-      and(
-        eq(completedExercisesCardsTable.user_id, userId),
-        eq(topicsTable.subject_id, subjectId)
-      )
-    )
-    .orderBy(
-      desc(completedExercisesCardsTable.created_at)
-    )) as RawCompletedExerciseCard[];
+      // Get user's completed exercise cards for this subject
+      const completedExerciseCards = (await db
+        .select({
+          exercise_card_id: completedExercisesCardsTable.exercise_card_id,
+          created_at: completedExercisesCardsTable.created_at,
+          description: exercisesCardsTable.description,
+          slug: exercisesCardsTable.slug,
+          difficulty: exercisesCardsTable.difficulty,
+          subtopic_name: subtopicsTable.name,
+          topic_name: topicsTable.name,
+        })
+        .from(completedExercisesCardsTable)
+        .innerJoin(
+          exercisesCardsTable,
+          eq(
+            completedExercisesCardsTable.exercise_card_id,
+            exercisesCardsTable.id
+          )
+        )
+        .leftJoin(
+          subtopicsTable,
+          eq(exercisesCardsTable.subtopic_id, subtopicsTable.id)
+        )
+        .leftJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
+        .where(
+          and(
+            eq(completedExercisesCardsTable.user_id, userId),
+            eq(topicsTable.subject_id, subjectId)
+          )
+        )
+        .orderBy(
+          desc(completedExercisesCardsTable.created_at)
+        )) as RawCompletedExerciseCard[];
 
-  // Get user's completed exercises for this subject
-  const completedExercises = await db.query.completedExercisesTable.findMany({
-    where: eq(completedExercisesTable.user_id, userId),
-  });
+      // Get user's completed exercises for this subject
+      const completedExercises =
+        await db.query.completedExercisesTable.findMany({
+          where: eq(completedExercisesTable.user_id, userId),
+        });
 
-  // Filter completed exercises to only those belonging to subject exercise cards
-  const subjectExerciseIds = subjectExercises.map((exercise) => exercise.id);
-  const subjectCompletedExercises = completedExercises.filter(
-    (completedEx) =>
-      completedEx.exercise_id &&
-      subjectExerciseIds.includes(completedEx.exercise_id)
-  );
+      // Filter completed exercises to only those belonging to subject exercise cards
+      const subjectExerciseIds = subjectExercises.map(
+        (exercise) => exercise.id
+      );
+      const subjectCompletedExercises = completedExercises.filter(
+        (completedEx) =>
+          completedEx.exercise_id &&
+          subjectExerciseIds.includes(completedEx.exercise_id)
+      );
 
-  // Calculate exercise statistics for this subject
-  const totalExerciseCards = subjectExerciseCards.length;
-  const totalExercises = subjectExercises.length;
-  const completedExerciseCardsCount = completedExerciseCards.length;
-  const completedExercisesCount = new Set(
-    subjectCompletedExercises.map((ex) => ex.exercise_id)
-  ).size;
+      // Calculate exercise statistics for this subject
+      const totalExerciseCards = subjectExerciseCards.length;
+      const totalExercises = subjectExercises.length;
+      const completedExerciseCardsCount = completedExerciseCards.length;
+      const completedExercisesCount = new Set(
+        subjectCompletedExercises.map((ex) => ex.exercise_id)
+      ).size;
 
-  const exerciseCardsCompletionPercentage =
-    totalExerciseCards > 0
-      ? Math.round((completedExerciseCardsCount / totalExerciseCards) * 100)
-      : 0;
+      const exerciseCardsCompletionPercentage =
+        totalExerciseCards > 0
+          ? Math.round((completedExerciseCardsCount / totalExerciseCards) * 100)
+          : 0;
 
-  const exercisesCompletionPercentage =
-    totalExercises > 0
-      ? Math.round((completedExercisesCount / totalExercises) * 100)
-      : 0;
+      const exercisesCompletionPercentage =
+        totalExercises > 0
+          ? Math.round((completedExercisesCount / totalExercises) * 100)
+          : 0;
 
-  return {
-    allExerciseCards: subjectExerciseCards,
-    allExercises: subjectExercises,
-    completedExerciseCards,
-    completedExercises: subjectCompletedExercises,
-    totalExerciseCards,
-    totalExercises,
-    completedExerciseCardsCount,
-    completedExercisesCount,
-    exerciseCardsCompletionPercentage,
-    exercisesCompletionPercentage,
-  };
+      return {
+        allExerciseCards: subjectExerciseCards,
+        allExercises: subjectExercises,
+        completedExerciseCards,
+        completedExercises: subjectCompletedExercises,
+        totalExerciseCards,
+        totalExercises,
+        completedExerciseCardsCount,
+        completedExercisesCount,
+        exerciseCardsCompletionPercentage,
+        exercisesCompletionPercentage,
+      };
+    },
+    ["getExerciseCompletionDataBySubject", userId, subjectId],
+    {
+      revalidate: 120,
+      tags: [
+        "exercises",
+        "statistics",
+        `user-${userId}`,
+        `subject-${subjectId}`,
+      ],
+    }
+  )();
 }
 
 /**
  * Get user's completed topics and subtopics filtered by subject
  */
-export async function getTheoryCompletionDataBySubject(
+export function getTheoryCompletionDataBySubject(
   userId: string,
   subjectId: string
 ) {
-  const [subjectTopics, allSubtopics] = await Promise.all([
-    getTopicsBySubjectId(subjectId),
-    getAllSubtopics(),
-  ]);
+  return unstable_cache(
+    async () => {
+      const [subjectTopics, allSubtopics] = await Promise.all([
+        getTopicsBySubjectId(subjectId),
+        getAllSubtopics(),
+      ]);
 
-  // Filter subtopics to only those belonging to subject topics
-  const subjectTopicIds = subjectTopics.map((topic) => topic.id);
-  const subjectSubtopics = allSubtopics.filter((subtopic) =>
-    subjectTopicIds.includes(subtopic.topic_id)
-  );
+      // Filter subtopics to only those belonging to subject topics
+      const subjectTopicIds = subjectTopics.map((topic) => topic.id);
+      const subjectSubtopics = allSubtopics.filter((subtopic) =>
+        subjectTopicIds.includes(subtopic.topic_id)
+      );
 
-  const [completedTopics, completedSubtopics] = await Promise.all([
-    db
-      .select({
-        topic_id: completedTopicsTable.topic_id,
-        created_at: completedTopicsTable.created_at,
-        name: topicsTable.name,
-        slug: topicsTable.slug,
-      })
-      .from(completedTopicsTable)
-      .innerJoin(topicsTable, eq(completedTopicsTable.topic_id, topicsTable.id))
-      .where(
-        and(
-          eq(completedTopicsTable.user_id, userId),
-          eq(topicsTable.subject_id, subjectId)
-        )
-      )
-      .orderBy(desc(completedTopicsTable.created_at)) as Promise<
-      RawCompletedTopic[]
-    >,
+      const [completedTopics, completedSubtopics] = await Promise.all([
+        db
+          .select({
+            topic_id: completedTopicsTable.topic_id,
+            created_at: completedTopicsTable.created_at,
+            name: topicsTable.name,
+            slug: topicsTable.slug,
+          })
+          .from(completedTopicsTable)
+          .innerJoin(
+            topicsTable,
+            eq(completedTopicsTable.topic_id, topicsTable.id)
+          )
+          .where(
+            and(
+              eq(completedTopicsTable.user_id, userId),
+              eq(topicsTable.subject_id, subjectId)
+            )
+          )
+          .orderBy(desc(completedTopicsTable.created_at)) as Promise<
+          RawCompletedTopic[]
+        >,
 
-    db
-      .select({
-        subtopic_id: completedSubtopicsTable.subtopic_id,
-        created_at: completedSubtopicsTable.created_at,
-        name: subtopicsTable.name,
-        topic_id: subtopicsTable.topic_id,
-        slug: subtopicsTable.slug,
-        topic_slug: topicsTable.slug,
-      })
-      .from(completedSubtopicsTable)
-      .innerJoin(
-        subtopicsTable,
-        eq(completedSubtopicsTable.subtopic_id, subtopicsTable.id)
-      )
-      .innerJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
-      .where(
-        and(
-          eq(completedSubtopicsTable.user_id, userId),
-          eq(topicsTable.subject_id, subjectId)
-        )
-      )
-      .orderBy(desc(completedSubtopicsTable.created_at)) as Promise<
-      RawCompletedSubtopic[]
-    >,
-  ]);
+        db
+          .select({
+            subtopic_id: completedSubtopicsTable.subtopic_id,
+            created_at: completedSubtopicsTable.created_at,
+            name: subtopicsTable.name,
+            topic_id: subtopicsTable.topic_id,
+            slug: subtopicsTable.slug,
+            topic_slug: topicsTable.slug,
+          })
+          .from(completedSubtopicsTable)
+          .innerJoin(
+            subtopicsTable,
+            eq(completedSubtopicsTable.subtopic_id, subtopicsTable.id)
+          )
+          .innerJoin(topicsTable, eq(subtopicsTable.topic_id, topicsTable.id))
+          .where(
+            and(
+              eq(completedSubtopicsTable.user_id, userId),
+              eq(topicsTable.subject_id, subjectId)
+            )
+          )
+          .orderBy(desc(completedSubtopicsTable.created_at)) as Promise<
+          RawCompletedSubtopic[]
+        >,
+      ]);
 
-  // Calculate theory completion percentages for this subject
-  const totalTopics = subjectTopics.length;
-  const totalSubtopics = subjectSubtopics.length;
-  const completedTopicsCount = completedTopics.length;
-  const completedSubtopicsCount = completedSubtopics.length;
+      // Calculate theory completion percentages for this subject
+      const totalTopics = subjectTopics.length;
+      const totalSubtopics = subjectSubtopics.length;
+      const completedTopicsCount = completedTopics.length;
+      const completedSubtopicsCount = completedSubtopics.length;
 
-  const topicsCompletionPercentage =
-    totalTopics > 0
-      ? Math.round((completedTopicsCount / totalTopics) * 100)
-      : 0;
-  const subtopicsCompletionPercentage =
-    totalSubtopics > 0
-      ? Math.round((completedSubtopicsCount / totalSubtopics) * 100)
-      : 0;
+      const topicsCompletionPercentage =
+        totalTopics > 0
+          ? Math.round((completedTopicsCount / totalTopics) * 100)
+          : 0;
+      const subtopicsCompletionPercentage =
+        totalSubtopics > 0
+          ? Math.round((completedSubtopicsCount / totalSubtopics) * 100)
+          : 0;
 
-  return {
-    allTopics: subjectTopics,
-    allSubtopics: subjectSubtopics,
-    completedTopics,
-    completedSubtopics,
-    totalTopics,
-    totalSubtopics,
-    completedTopicsCount,
-    completedSubtopicsCount,
-    topicsCompletionPercentage,
-    subtopicsCompletionPercentage,
-  };
+      return {
+        allTopics: subjectTopics,
+        allSubtopics: subjectSubtopics,
+        completedTopics,
+        completedSubtopics,
+        totalTopics,
+        totalSubtopics,
+        completedTopicsCount,
+        completedSubtopicsCount,
+        topicsCompletionPercentage,
+        subtopicsCompletionPercentage,
+      };
+    },
+    ["getTheoryCompletionDataBySubject", userId, subjectId],
+    {
+      revalidate: 120,
+      tags: [
+        "completion",
+        "statistics",
+        `user-${userId}`,
+        `subject-${subjectId}`,
+      ],
+    }
+  )();
 }
 
 /**
@@ -789,69 +889,72 @@ export async function getRecentActivity(
 /**
  * Get all statistics data for a user filtered by subject
  */
-export async function getAllStatisticsDataBySubject(
+export function getAllStatisticsDataBySubject(
   userId: string,
   subjectId: string
 ): Promise<StatisticsData> {
-  // Get simulation statistics for this subject
-  const simulationStats = await getSimulationStatisticsBySubject(
-    userId,
-    subjectId
-  );
+  return unstable_cache(
+    async (): Promise<StatisticsData> => {
+      const simulationStats = await getSimulationStatisticsBySubject(
+        userId,
+        subjectId
+      );
 
-  // Get theory completion data for this subject
-  const theoryData = await getTheoryCompletionDataBySubject(userId, subjectId);
+      const theoryData = await getTheoryCompletionDataBySubject(
+        userId,
+        subjectId
+      );
 
-  // Get exercise completion data for this subject
-  const exerciseData = await getExerciseCompletionDataBySubject(
-    userId,
-    subjectId
-  );
+      const exerciseData = await getExerciseCompletionDataBySubject(
+        userId,
+        subjectId
+      );
 
-  // Generate monthly activity
-  const monthlyActivity = generateMonthlyActivity(
-    simulationStats.userCompletedSimulations,
-    theoryData.completedTopics,
-    theoryData.completedSubtopics,
-    exerciseData.completedExercises
-  );
+      const monthlyActivity = generateMonthlyActivity(
+        simulationStats.userCompletedSimulations,
+        theoryData.completedTopics,
+        theoryData.completedSubtopics,
+        exerciseData.completedExercises
+      );
 
-  // Get recent activity
-  const { recentSimulations, recentTheory, recentExerciseCards } =
-    await getRecentActivity(
-      simulationStats.userCompletedSimulations,
-      theoryData.completedTopics,
-      theoryData.completedSubtopics,
-      exerciseData.completedExerciseCards
-    );
+      const { recentSimulations, recentTheory, recentExerciseCards } =
+        await getRecentActivity(
+          simulationStats.userCompletedSimulations,
+          theoryData.completedTopics,
+          theoryData.completedSubtopics,
+          exerciseData.completedExerciseCards
+        );
 
-  return {
-    // Simulation stats
-    totalSimulations: simulationStats.totalSimulations,
-    completedSimulations: simulationStats.completedSimulations,
-    completionPercentage: simulationStats.completionPercentage,
-    totalTimeSpent: simulationStats.totalTimeSpent,
-    simulationTypeBreakdown: simulationStats.simulationTypeBreakdown,
-    // Theory stats
-    totalTopics: theoryData.totalTopics,
-    completedTopicsCount: theoryData.completedTopicsCount,
-    topicsCompletionPercentage: theoryData.topicsCompletionPercentage,
-    totalSubtopics: theoryData.totalSubtopics,
-    completedSubtopicsCount: theoryData.completedSubtopicsCount,
-    subtopicsCompletionPercentage: theoryData.subtopicsCompletionPercentage,
-    // Exercise stats
-    totalExerciseCards: exerciseData.totalExerciseCards,
-    completedExerciseCards: exerciseData.completedExerciseCardsCount,
-    exerciseCardsCompletionPercentage:
-      exerciseData.exerciseCardsCompletionPercentage,
-    totalExercises: exerciseData.totalExercises,
-    completedExercises: exerciseData.completedExercisesCount,
-    exercisesCompletionPercentage: exerciseData.exercisesCompletionPercentage,
-    // Activity data
-    monthlyActivity,
-    // Recent activity
-    recentSimulations,
-    recentTheory,
-    recentExerciseCards,
-  };
+      return {
+        totalSimulations: simulationStats.totalSimulations,
+        completedSimulations: simulationStats.completedSimulations,
+        completionPercentage: simulationStats.completionPercentage,
+        totalTimeSpent: simulationStats.totalTimeSpent,
+        simulationTypeBreakdown: simulationStats.simulationTypeBreakdown,
+        totalTopics: theoryData.totalTopics,
+        completedTopicsCount: theoryData.completedTopicsCount,
+        topicsCompletionPercentage: theoryData.topicsCompletionPercentage,
+        totalSubtopics: theoryData.totalSubtopics,
+        completedSubtopicsCount: theoryData.completedSubtopicsCount,
+        subtopicsCompletionPercentage: theoryData.subtopicsCompletionPercentage,
+        totalExerciseCards: exerciseData.totalExerciseCards,
+        completedExerciseCards: exerciseData.completedExerciseCardsCount,
+        exerciseCardsCompletionPercentage:
+          exerciseData.exerciseCardsCompletionPercentage,
+        totalExercises: exerciseData.totalExercises,
+        completedExercises: exerciseData.completedExercisesCount,
+        exercisesCompletionPercentage:
+          exerciseData.exercisesCompletionPercentage,
+        monthlyActivity,
+        recentSimulations,
+        recentTheory,
+        recentExerciseCards,
+      };
+    },
+    ["getAllStatisticsDataBySubject", userId, subjectId],
+    {
+      revalidate: 120,
+      tags: ["statistics", `user-${userId}`, `subject-${subjectId}`],
+    }
+  )();
 }

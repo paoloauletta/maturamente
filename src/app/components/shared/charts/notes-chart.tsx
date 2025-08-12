@@ -180,7 +180,7 @@ export function NotesChart({
         />
         <XAxis {...commonXAxisProps} />
         <YAxis {...commonYAxisProps} />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f3f3f3" }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: "#00000012" }} />
         <Bar
           dataKey="minutes"
           name="Minuti"

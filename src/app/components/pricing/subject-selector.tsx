@@ -74,86 +74,86 @@ export function SubjectSelector({
               {/* soft color glow background */}
               <div className="pointer-events-none absolute -top-24 left-1/2 h-32 w-full max-w-[960px] -translate-x-1/2 rounded-[50%] bg-[var(--subject-color)]/20 blur-[72px]" />
 
-              <div className="flex flex-col h-full p-4 justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const Icon = getSubjectIcon(subject.name);
-                        return Icon ? (
-                          <div className="flex h-7 w-7 items-center justify-center">
-                            <Icon
-                              className="h-4 w-4"
-                              style={{ color: `${subject.color}75` }}
-                            />
-                          </div>
-                        ) : null;
-                      })()}
-                      <h3
-                        className={`font-semibold text-[var(--subject-color)] group-hover:text-[var(--subject-color)] transition-colors ${
-                          isSelected
-                            ? "md:text-[var(--subject-color)]"
-                            : "md:text-foreground"
-                        }`}
-                      >
-                        {subject.name}
-                      </h3>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <div
-                        className={`w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
-                          isSelected
-                            ? "shadow-md"
-                            : "border-2 border-muted-foreground/30 group-hover:border-[var(--subject-color)]"
-                        }`}
-                        style={{
-                          backgroundColor: isSelected
-                            ? subject.color
-                            : "transparent",
-                          borderColor: isSelected ? subject.color : undefined,
-                        }}
-                      >
-                        {isSelected && (
-                          <Check className="h-3.5 w-3.5 text-white" />
-                        )}
-                      </div>
+              <div className="flex flex-col h-full p-4 justify-between gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const Icon = getSubjectIcon(subject.name);
+                      return Icon ? (
+                        <div className="flex h-7 w-7 items-center justify-center">
+                          <Icon
+                            className="h-4 w-4"
+                            style={{ color: `${subject.color}75` }}
+                          />
+                        </div>
+                      ) : null;
+                    })()}
+                    <h3
+                      className={`font-semibold text-[var(--subject-color)] group-hover:text-[var(--subject-color)] transition-colors ${
+                        isSelected
+                          ? "md:text-[var(--subject-color)]"
+                          : "md:text-foreground"
+                      }`}
+                    >
+                      {subject.name}
+                    </h3>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div
+                      className={`w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
+                        isSelected
+                          ? "shadow-md"
+                          : "border-2 border-muted-foreground/30 group-hover:border-[var(--subject-color)]"
+                      }`}
+                      style={{
+                        backgroundColor: isSelected
+                          ? subject.color
+                          : "transparent",
+                        borderColor: isSelected ? subject.color : undefined,
+                      }}
+                    >
+                      {isSelected && (
+                        <Check className="h-3.5 w-3.5 text-white" />
+                      )}
                     </div>
                   </div>
+                </div>
+                <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {subject.description}
                   </p>
-                </div>
-                <div className="flex items-center gap-1 pt-3 border-t border-border/80">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-full">
-                    <FileText
-                      className="h-4.5 w-4.5"
-                      style={{ color: `${subject.color}75` }}
-                    />
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span className="text-sm font-medium">
-                      {subject.notes_count}{" "}
-                      {subject.notes_count === 1 ? "appunto" : "appunti"}
-                      <span className="text-xs text-muted-foreground">
-                        {" "}
-                        {subject.notes_count === 1
-                          ? "disponibile"
-                          : "disponibili"}
+                  <div className="flex items-center gap-1 pt-3 border-t border-border/80">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-full">
+                      <FileText
+                        className="h-4.5 w-4.5"
+                        style={{ color: `${subject.color}75` }}
+                      />
+                    </div>
+                    <div className="flex justify-between w-full">
+                      <span className="text-sm font-medium">
+                        {subject.notes_count}{" "}
+                        {subject.notes_count === 1 ? "appunto" : "appunti"}
+                        <span className="text-xs text-muted-foreground">
+                          {" "}
+                          {subject.notes_count === 1
+                            ? "disponibile"
+                            : "disponibili"}
+                        </span>
                       </span>
-                    </span>
+                    </div>
+                    {subject.maturita && (
+                      <Badge
+                        className="inline-flex items-center gap-1 text-xs w-fit"
+                        style={{
+                          backgroundColor: `${subject.color}18`,
+                          color: subject.color,
+                          borderColor: `${subject.color}40`,
+                        }}
+                      >
+                        <GraduationCap className="h-3.5 w-3.5" /> Maturità
+                      </Badge>
+                    )}
                   </div>
-                  {subject.maturita && (
-                    <Badge
-                      className="inline-flex items-center gap-1 text-xs w-fit"
-                      style={{
-                        backgroundColor: `${subject.color}18`,
-                        color: subject.color,
-                        borderColor: `${subject.color}40`,
-                      }}
-                    >
-                      <GraduationCap className="h-3.5 w-3.5" /> Maturità
-                    </Badge>
-                  )}
                 </div>
               </div>
             </div>
